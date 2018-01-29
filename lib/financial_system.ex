@@ -3,4 +3,7 @@ defmodule FinancialSystem do
   Documentation for FinancialSystem.
   """
 
+  alias Currency
+  alias Money
+
 end
