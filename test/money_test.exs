@@ -9,19 +9,19 @@ defmodule MoneyTest do
   end
 
   test "should create one BRL", context do 
-    {:ok, money} = Money.create(1, context.brl)
+    {:ok, {integer, exponent, currency}} = Money.create(1, context.brl)
 
-    assert money.integer_amount == 1
-    assert money.exponent_amount == 0
-    assert money.currency == context.brl
+    assert integer == 1
+    assert exponent == 0
+    assert currency == context.brl
   end
 
   test "should create floating point BRL", context do
-    {:ok, money} = Money.create(1.39, context.brl)
+    {:ok, {integer, exponent, currency}} = Money.create(1.39, context.brl)
 
-    assert money.integer_amount == 1
-    assert money.exponent_amount == 39
-    assert money.currency == context.brl
+    assert integer == 1
+    assert exponent == 39
+    assert currency == context.brl
   end
 
   test "should not create money without currency" do
@@ -31,11 +31,11 @@ defmodule MoneyTest do
   end
 
   test "should create negative money", context do
-    {:ok, money} = Money.create(-1.42, context.brl)
+    {:ok, {integer, exponent, currency}} = Money.create(-1.42, context.brl)
 
-    assert money.integer_amount == -1
-    assert money.exponent_amount == -42
-    assert money.currency == context.brl
+    assert integer == -1
+    assert exponent == -42
+    assert currency == context.brl
   end
 
   test "should not sum money from different currencies", context do
@@ -51,30 +51,33 @@ defmodule MoneyTest do
     {:ok, oneReal} = Money.create(1, context.brl)
     
     {:ok, sum} = Money.sum(oneReal, oneReal)
-
-    assert sum.integer_amount == 2
-    assert sum.exponent_amount == 0
-    assert sum.currency == context.brl
+    {integer, exponent, currency} = sum
+    
+    assert integer == 2
+    assert exponent == 0
+    assert currency == context.brl
   end
 
   test "should sum exponent amount from same currencies", context do
     {:ok, fourtyCents} = Money.create(0.40, context.brl)
     
     {:ok, sum} = Money.sum(fourtyCents, fourtyCents)
+    {integer, exponent, currency} = sum
 
-    assert sum.integer_amount == 0
-    assert sum.exponent_amount == 80
-    assert sum.currency == context.brl
+    assert integer == 0
+    assert exponent == 80
+    assert currency == context.brl
   end
 
   test "should sum exponent amount and transfer it to integer part when it surpasses exponent from the currency", context do
     {:ok, sixtyCents} = Money.create(0.60, context.brl)
 
     {:ok, sum} = Money.sum(sixtyCents, sixtyCents)
+    {integer, exponent, currency} = sum
 
-    assert sum.integer_amount == 1
-    assert sum.exponent_amount == 20
-    assert sum.currency == context.brl
+    assert integer == 1
+    assert exponent == 20
+    assert currency == context.brl
   end
 
   test "should sum integer from one and exponent from another", context do
@@ -82,20 +85,22 @@ defmodule MoneyTest do
     {:ok, sixtyCents} = Money.create(0.60, context.brl)
 
     {:ok, sum} = Money.sum(oneReal, sixtyCents)
+    {integer, exponent, currency} = sum
 
-    assert sum.integer_amount == 1
-    assert sum.exponent_amount == 60
-    assert sum.currency == context.brl
+    assert integer == 1
+    assert exponent == 60
+    assert currency == context.brl
   end
 
   test "should change signal on negative", context do
     {:ok, money} = Money.create(1.50, context.brl)
 
     {:ok, negative} = Money.negative(money)
+    {integer, exponent, currency} = negative
 
-    assert negative.integer_amount == -1
-    assert negative.exponent_amount == -50
-    assert negative.currency == context.brl
+    assert integer == -1
+    assert exponent == -50
+    assert currency == context.brl
   end
 
   test "should sum positive and negative moneys", context do
@@ -103,10 +108,11 @@ defmodule MoneyTest do
     {:ok, threeHalfReais} = Money.create(-3.5, context.brl)
 
     {:ok, sum} = Money.sum(fiveReais, threeHalfReais)
+    {integer, exponent, currency} = sum
 
-    assert sum.integer_amount == 1
-    assert sum.exponent_amount == 50
-    assert sum.currency == context.brl
+    assert integer == 1
+    assert exponent == 50
+    assert currency == context.brl
   end
 
   test "should sum positive exponent with negative exponent", context do
@@ -114,20 +120,22 @@ defmodule MoneyTest do
     {:ok, negativeExponent} = Money.create(-0.47, context.brl)
 
     {:ok, sum} = Money.sum(positiveExponent, negativeExponent)
+    {integer, exponent, currency} = sum
 
-    assert sum.integer_amount == 0
-    assert sum.exponent_amount == -24
-    assert sum.currency == context.brl
+    assert integer == 0
+    assert exponent == -24
+    assert currency == context.brl
   end
 
   test "should sum negative moneys", context do 
     {:ok, minusOneHalfReais} = Money.create(-1.54, context.brl)
 
     {:ok, sum} = Money.sum(minusOneHalfReais, minusOneHalfReais)
+    {integer, exponent, currency} = sum
 
-    assert sum.integer_amount == -3
-    assert sum.exponent_amount == -8
-    assert sum.currency == context.brl
+    assert integer == -3
+    assert exponent == -8
+    assert currency == context.brl
   end
 
 end  
