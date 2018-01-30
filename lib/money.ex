@@ -11,44 +11,42 @@ defmodule Money do
         {:error, "Currency is not present"}
 
       true ->
-        integer_amount = trunc(amount)
-        difference = amount - integer_amount
-        exponent_amount = Float.round(difference * :math.pow(10, currency.exponent))
-
-        {:ok,
-         {
-           integer_amount,
-           exponent_amount,
-           currency
-         }}
+        no_comma_amout = Float.round(amount * :math.pow(10, currency.exponent))
+        
+        raw_integer(trunc(no_comma_amout), currency)
     end
   end
 
-  def sum(arg1, arg2) do
-    if elem(arg1, 2) != elem(arg2, 2) do
+  def raw_integer(raw_integer, currency) do
+    currency_exponent = trunc(:math.pow(10, currency.exponent))
+
+    integer = div(raw_integer, currency_exponent)
+    exponent = rem(raw_integer, currency_exponent)
+
+    {:ok, {integer, exponent, currency}}
+  end
+
+  def sum({integer1, exponent1, currency1}, {integer2, exponent2, currency2}) do
+    if currency1 != currency2 do
       {:error, "You can only sum money from the same currency"}
     else
-      {integer1, exponent1, currency} = arg1
-      {integer2, exponent2, _} = arg2
+      amount1 = integer1 * trunc(:math.pow(10, currency1.exponent)) + exponent1
+      amount2 = integer2 * trunc(:math.pow(10, currency1.exponent)) + exponent2
 
-      integer = integer1 + integer2
-      exponent = exponent1 + exponent2
-      max_exponent = :math.pow(10, currency.exponent)
-      min_exponent = -max_exponent
-
-      {integer, exponent} =
-        cond do
-          exponent >= max_exponent -> {integer + 1, exponent - max_exponent}
-          integer > 0 && exponent < 0 -> {integer - 1, exponent + max_exponent}
-          exponent <= min_exponent -> {integer - 1, exponent + max_exponent}
-          true -> {integer, exponent}
-        end
-
-      {:ok, {integer, exponent, currency}}
+      sum = amount1 + amount2
+      
+      raw_integer(sum, currency1)
     end
   end
 
   def negative({integer, exponent, currency}) do
     {:ok, {-integer, -exponent, currency}}
   end
+
+  def to_string({integer, exponent, currency}) do
+    
+    "#{currency.repr} #{integer}.#{abs(exponent)}"
+  end
+
+  
 end

@@ -3,8 +3,8 @@ defmodule MoneyTest do
   doctest Money
 
   setup do
-    {:ok, brl} = Currency.create("BRL", "986", 2)
-    {:ok, usd} = Currency.create("USD", "840", 2)
+    {:ok, brl} = Currency.create("BRL", "986", 2, "R$")
+    {:ok, usd} = Currency.create("USD", "840", 2, "$")
     %{brl: brl, usd: usd}
   end
 
@@ -138,4 +138,11 @@ defmodule MoneyTest do
     assert currency == context.brl
   end
 
+  test "should format money with currency on to_string", context do
+    {:ok, oneHalfReais} = Money.create(-1.50, context.brl)
+
+    assert Money.to_string(oneHalfReais) == "R$ -1.50"
+    
+    
+  end
 end  

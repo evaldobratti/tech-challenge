@@ -1,7 +1,7 @@
 defmodule Currency do
-  defstruct code_alpha: nil, code_number: nil, exponent: nil
+  defstruct code_alpha: nil, code_number: nil, exponent: nil, repr: ""
 
-  def create(code_alpha, code_number, exponent) do
+  def create(code_alpha, code_number, exponent, repr \\ "") do
     cond do
       not is_binary(code_alpha) -> {:error, "Alphabetic code should be a string"}
       String.length(code_alpha) != 3 -> {:error, "Alphabetic code should have 3 letters"}
@@ -13,7 +13,7 @@ defmodule Currency do
       not is_integer(exponent) -> {:error, "Exponent should be an integer"}
       exponent < 0 -> {:error, "Exponent should be positive"}
 
-      true -> {:ok, %Currency{code_alpha: code_alpha, code_number: code_number, exponent: exponent}}
+      true -> {:ok, %Currency{code_alpha: code_alpha, code_number: code_number, exponent: exponent, repr: repr}}
     end
   end
 end
