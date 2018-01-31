@@ -11,17 +11,17 @@ defmodule Money do
         {:error, "Currency is not present"}
 
       true ->
-        no_comma_amout = Float.round(amount * :math.pow(10, currency.exponent))
+        no_comma_amout = Float.round(amount * Currency.factor(currency))
         
         raw_integer(trunc(no_comma_amout), currency)
     end
   end
 
-  def raw_integer(raw_integer, currency) do
-    currency_exponent = trunc(:math.pow(10, currency.exponent))
+  def raw_integer(raw_integer, currency) when is_integer(raw_integer) do
+    factor = Currency.factor(currency)
 
-    integer = div(raw_integer, currency_exponent)
-    exponent = rem(raw_integer, currency_exponent)
+    integer = div(raw_integer, factor)
+    exponent = rem(raw_integer, factor)
 
     {:ok, {integer, exponent, currency}}
   end
@@ -30,8 +30,10 @@ defmodule Money do
     if currency1 != currency2 do
       {:error, "You can only sum money from the same currency"}
     else
-      amount1 = integer1 * trunc(:math.pow(10, currency1.exponent)) + exponent1
-      amount2 = integer2 * trunc(:math.pow(10, currency1.exponent)) + exponent2
+      factor = Currency.factor(currency1)
+
+      amount1 = integer1 * factor + exponent1
+      amount2 = integer2 * factor + exponent2
 
       sum = amount1 + amount2
       
@@ -44,7 +46,6 @@ defmodule Money do
   end
 
   def to_string({integer, exponent, currency}) do
-    
     "#{currency.repr} #{integer}.#{abs(exponent)}"
   end
 

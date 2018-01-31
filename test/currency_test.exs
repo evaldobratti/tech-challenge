@@ -51,4 +51,10 @@ defmodule CurrencyTest do
 
     assert message == "Exponent should be positive"
   end
+
+  test "should calculate factor for the exponent" do
+    {:ok, brl} = Currency.create("BRL", "986", 2)
+
+    assert 100 === Currency.factor(brl)
+  end
 end

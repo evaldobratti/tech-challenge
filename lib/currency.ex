@@ -16,4 +16,8 @@ defmodule Currency do
       true -> {:ok, %Currency{code_alpha: code_alpha, code_number: code_number, exponent: exponent, repr: repr}}
     end
   end
+
+  def factor(currency) do
+    trunc(:math.pow(10, currency.exponent))
+  end
 end
