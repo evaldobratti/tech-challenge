@@ -104,10 +104,10 @@ defmodule MoneyTest do
   end
 
   test "should sum positive and negative moneys", context do
-    {:ok, fiveReais} = Money.create(5, context.brl)
-    {:ok, threeHalfReais} = Money.create(-3.5, context.brl)
+    {:ok, five_reais} = Money.create(5, context.brl)
+    {:ok, three_half_reais} = Money.create(-3.5, context.brl)
 
-    {:ok, sum} = Money.sum(fiveReais, threeHalfReais)
+    {:ok, sum} = Money.sum(five_reais, three_half_reais)
     {integer, exponent, currency} = sum
 
     assert integer == 1
@@ -116,10 +116,10 @@ defmodule MoneyTest do
   end
 
   test "should sum positive exponent with negative exponent", context do
-    {:ok, positiveExponent} = Money.create(0.23, context.brl)
-    {:ok, negativeExponent} = Money.create(-0.47, context.brl)
+    {:ok, positive_exponent} = Money.create(0.23, context.brl)
+    {:ok, negative_exponent} = Money.create(-0.47, context.brl)
 
-    {:ok, sum} = Money.sum(positiveExponent, negativeExponent)
+    {:ok, sum} = Money.sum(positive_exponent, negative_exponent)
     {integer, exponent, currency} = sum
 
     assert integer == 0
@@ -142,7 +142,56 @@ defmodule MoneyTest do
     {:ok, oneHalfReais} = Money.create(-1.50, context.brl)
 
     assert Money.to_string(oneHalfReais) == "R$ -1.50"
-    
-    
+  end
+
+  test "should not exchange same currency if rate is not 1", context do
+    brl = context.brl
+
+    {:ok, money_brl} = Money.create(1, brl)
+
+    {:error, message} = Money.exchange(money_brl, brl, 2)
+
+    assert message == "Exchanging from to the same currency should have 1 as rate"
+
+  end
+
+  test "should exchange dollars to reais at 2 rate", context do
+    %{brl: brl, usd: usd} = context
+
+    {:ok, money_usd} = Money.create(1, usd)
+
+    {:ok, {integer, exponent, currency}, {leftover, leftover_currency}} = Money.exchange(money_usd, brl, 2)
+
+    assert integer == 2
+    assert exponent == 0
+    assert currency == brl
+    assert leftover == 0
+    assert leftover_currency == brl
+  end
+
+  test "should exchange dollars to reais at 2.5555 rate", context do
+    %{brl: brl, usd: usd} = context
+
+    {:ok, money_usd} = Money.create(1, usd)
+
+    {:ok, {integer, exponent, currency}, {leftover, _}} = Money.exchange(money_usd, brl, 2.5555)
+
+    assert integer == 2
+    assert exponent == 55
+    assert currency == brl
+    assert leftover == 55000
+  end
+
+  test "should exchange reais to dollars at 0.3143 rate", context do
+    %{brl: brl, usd: usd} = context
+
+    {:ok, money_brl} = Money.create(1, brl)
+
+    {:ok, {integer, exponent, currency}, {leftover, _}} = Money.exchange(money_brl, usd, 0.3143)
+
+    assert integer == 0
+    assert exponent == 31
+    assert currency == usd
+    assert leftover == 43000
   end
 end  
