@@ -80,4 +80,26 @@ defmodule Money do
         {:ok, raw_integer(significant, currency_to), {leftover, currency_to}}
     end
   end
+
+  def divide({_, _, currency} = money, divisor) when is_integer(divisor) and divisor > 1 do
+    amount = to_raw_integer(money)
+
+    divided = div(amount, divisor)
+
+    difference = amount - (divided * divisor)
+    
+    parts = Enum.map(1..divisor, fn(_)-> raw_integer(divided, currency) end)
+
+    distributed_parts = distribute(difference, parts)
+
+    {:ok,  distributed_parts}
+  end
+
+  def distribute(0, list) do 
+    list
+  end
+
+  def distribute(difference, [ {_, _, currency} = part | others ]) do
+    [raw_integer(to_raw_integer(part) + 1, currency)] ++ distribute(difference - 1, others)
+  end
 end

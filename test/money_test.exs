@@ -8,7 +8,7 @@ defmodule MoneyTest do
     %{brl: brl, usd: usd}
   end
 
-  test "should create one BRL", context do 
+  test "should create one BRL", context do
     {:ok, {integer, exponent, currency}} = Money.create(1, context.brl)
 
     assert integer == 1
@@ -41,7 +41,7 @@ defmodule MoneyTest do
   test "should not sum money from different currencies", context do
     {:ok, oneReal} = Money.create(1, context.brl)
     {:ok, oneDollar} = Money.create(1, context.usd)
-    
+
     {:error, message} = Money.sum(oneReal, oneDollar)
 
     assert message == "You can only sum money from the same currency"
@@ -49,10 +49,10 @@ defmodule MoneyTest do
 
   test "should sum integer amount from same currencies", context do
     {:ok, oneReal} = Money.create(1, context.brl)
-    
+
     {:ok, sum} = Money.sum(oneReal, oneReal)
     {integer, exponent, currency} = sum
-    
+
     assert integer == 2
     assert exponent == 0
     assert currency == context.brl
@@ -60,7 +60,7 @@ defmodule MoneyTest do
 
   test "should sum exponent amount from same currencies", context do
     {:ok, fourtyCents} = Money.create(0.40, context.brl)
-    
+
     {:ok, sum} = Money.sum(fourtyCents, fourtyCents)
     {integer, exponent, currency} = sum
 
@@ -69,7 +69,8 @@ defmodule MoneyTest do
     assert currency == context.brl
   end
 
-  test "should sum exponent amount and transfer it to integer part when it surpasses exponent from the currency", context do
+  test "should sum exponent amount and transfer it to integer part when it surpasses exponent from the currency",
+       context do
     {:ok, sixtyCents} = Money.create(0.60, context.brl)
 
     {:ok, sum} = Money.sum(sixtyCents, sixtyCents)
@@ -127,7 +128,7 @@ defmodule MoneyTest do
     assert currency == context.brl
   end
 
-  test "should sum negative moneys", context do 
+  test "should sum negative moneys", context do
     {:ok, minusOneHalfReais} = Money.create(-1.54, context.brl)
 
     {:ok, sum} = Money.sum(minusOneHalfReais, minusOneHalfReais)
@@ -152,7 +153,6 @@ defmodule MoneyTest do
     {:error, message} = Money.exchange(money_brl, brl, 2)
 
     assert message == "Exchanging from to the same currency should have 1 as rate"
-
   end
 
   test "should exchange dollars to reais at 2 rate", context do
@@ -160,7 +160,8 @@ defmodule MoneyTest do
 
     {:ok, money_usd} = Money.create(1, usd)
 
-    {:ok, {integer, exponent, currency}, {leftover, leftover_currency}} = Money.exchange(money_usd, brl, 2)
+    {:ok, {integer, exponent, currency}, {leftover, leftover_currency}} =
+      Money.exchange(money_usd, brl, 2)
 
     assert integer == 2
     assert exponent == 0
@@ -194,4 +195,43 @@ defmodule MoneyTest do
     assert currency == usd
     assert leftover == 43000
   end
-end  
+
+  test "should divide $ 1 equally by 2", context do
+    usd = context.usd
+    {:ok, money} = Money.create(1, usd)
+
+    {:ok, parts} = Money.divide(money, 2)
+
+    assert {0, 50, ^usd} = Enum.at(parts, 0)
+    assert {0, 50, ^usd} = Enum.at(parts, 1)
+    assert length(parts) == 2
+  end
+
+  test "should add a cent in the first part of $ 1 divided by 3", context do
+    usd = context.usd
+
+    {:ok, money} = Money.create(1, usd)
+
+    {:ok, parts} = Money.divide(money, 3)
+
+    assert {0, 34, ^usd} = Enum.at(parts, 0)
+    assert {0, 33, ^usd} = Enum.at(parts, 1)
+    assert {0, 33, ^usd} = Enum.at(parts, 2)
+    assert length(parts) == 3
+  end
+
+  test "should distribute 2 cents in the firsts parts of $2.33 divided by 5", context do
+    usd = context.usd
+
+    {:ok, money} = Money.create(2.33, usd)
+
+    {:ok, parts} = Money.divide(money, 5)
+
+    assert {0, 47, ^usd} = Enum.at(parts, 0)
+    assert {0, 47, ^usd} = Enum.at(parts, 1)
+    assert {0, 47, ^usd} = Enum.at(parts, 2)
+    assert {0, 46, ^usd} = Enum.at(parts, 3)
+    assert {0, 46, ^usd} = Enum.at(parts, 4)
+    assert length(parts) == 5
+  end
+end
