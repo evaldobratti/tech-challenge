@@ -11,4 +11,8 @@ defmodule Account do
       true -> {:ok, {id, owner_name, limit, currency}}
     end
   end
+
+  def get_name(account) do
+    elem(account, 1)
+  end
 end
