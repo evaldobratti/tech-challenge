@@ -12,39 +12,31 @@ defmodule AccountTest do
     zero = context.zero
     brl = context.brl
 
-    assert {:ok, {"Evaldo Bratti", ^zero, ^brl}} = Account.create("Evaldo Bratti", zero)
+    assert {:ok, {1, "Evaldo Bratti", ^zero, ^brl}} = Account.create(1, "Evaldo Bratti", zero)
   end
 
   test "should not create account with no owner name", context do
     zero = context.zero
 
-    assert {:error, "Name should not be nil"} = Account.create(nil, zero)
+    assert {:error, "Name should not be nil"} = Account.create(1, nil, zero)
   end
 
   test "should not create account with non string owner name", context do
     zero = context.zero
 
-    assert {:error, "Name should be a string"} = Account.create(1, zero)
+    assert {:error, "Name should be a string"} = Account.create(1, 1, zero)
   end
 
   test "should not create account with empty name", context do
     zero = context.zero
 
-    assert {:error, "Name should not be empty"} = Account.create("", zero)
-  end
-
-  test "should return name as identifier for the account", context do 
-    zero = context.zero
-
-    {:ok, account} = Account.create("Evaldo Bratti", zero)
-
-    assert Account.id(account) == "Evaldo Bratti"
+    assert {:error, "Name should not be empty"} = Account.create(1, "", zero)
   end
 
   test "limit should not be negative", context do
     brl = context.brl
     {:ok, negative_money} = Money.create(-1, brl)
 
-    assert {:error, "Limit should not be negative"} = Account.create("Evaldo Bratti", negative_money)
+    assert {:error, "Limit should not be negative"} = Account.create(1, "Evaldo Bratti", negative_money)
   end
 end

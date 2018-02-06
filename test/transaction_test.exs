@@ -6,8 +6,8 @@ defmodule TransactionTest do
     {:ok, brl} = Currency.create("BRL", "986", 2, "R$")
     {:ok, money} = Money.create(50, brl)
     {:ok, zero} = Money.create(0, brl)
-    {:ok, acc1} = Account.create("Bruce Wayne", zero)
-    {:ok, acc2} = Account.create("Clark Kent", zero)
+    {:ok, acc1} = Account.create(1, "Bruce Wayne", zero)
+    {:ok, acc2} = Account.create(2, "Clark Kent", zero)
 
     %{money: money, acc1: acc1, acc2: acc2, zero: zero}
   end
@@ -17,10 +17,11 @@ defmodule TransactionTest do
     acc1: acc1,
     acc2: acc2
   } do
-    transaction = Transaction.create(acc1, acc2, money)
+    transaction = Transaction.create(1, acc1, acc2, money)
 
-    {:ok, {{from, debit}, {to, credit}}} = transaction
+    {:ok, {id, {from, debit}, {to, credit}}} = transaction
 
+    assert id == 1
     assert from == acc1
     assert debit == Money.negative(money)
     assert to == acc2
@@ -32,7 +33,7 @@ defmodule TransactionTest do
     acc1: acc1,
     acc2: acc2
   } do
-    transaction = Transaction.create(acc1, acc2, Money.negative(money))
+    transaction = Transaction.create(1, acc1, acc2, Money.negative(money))
 
     assert {:error, "Money from a transaction must be positive"} = transaction
   end
@@ -43,7 +44,7 @@ defmodule TransactionTest do
     acc1: acc1,
     acc2: acc2
   } do
-    transaction = Transaction.create(acc1, acc2, Money.negative(zero))
+    transaction = Transaction.create(1, acc1, acc2, Money.negative(zero))
 
     assert {:error, "Money from a transaction must be positive"} = transaction
   end
