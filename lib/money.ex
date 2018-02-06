@@ -102,4 +102,8 @@ defmodule Money do
   def distribute(difference, [ {_, _, currency} = part | others ]) do
     [raw_integer(to_raw_integer(part) + 1, currency)] ++ distribute(difference - 1, others)
   end
+
+  def is_negative(money) do
+    to_raw_integer(money) < 0
+  end
 end

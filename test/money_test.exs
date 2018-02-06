@@ -234,4 +234,28 @@ defmodule MoneyTest do
     assert {0, 46, ^usd} = Enum.at(parts, 4)
     assert length(parts) == 5
   end
+
+  test "should return true on is_negative for negative money", context do
+    usd = context.usd
+
+    {:ok, money} = Money.create(-1, usd)
+
+    assert Money.is_negative(money)
+  end
+
+  test "should return false on is_negative for zero money", context do
+    usd = context.usd
+
+    {:ok, money} = Money.create(0, usd)
+
+    assert !Money.is_negative(money)
+  end
+
+  test "should return false on is_negative for positive money", context do
+    usd = context.usd
+
+    {:ok, money} = Money.create(0, usd)
+
+    assert !Money.is_negative(money)
+  end
 end
