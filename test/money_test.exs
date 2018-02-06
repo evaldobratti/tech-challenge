@@ -232,6 +232,7 @@ defmodule MoneyTest do
     assert {0, 47, ^usd} = Enum.at(parts, 2)
     assert {0, 46, ^usd} = Enum.at(parts, 3)
     assert {0, 46, ^usd} = Enum.at(parts, 4)
+    assert {:ok, ^money} = Enum.reduce(parts, Money.create(0, usd), fn(x, {:ok, acc}) -> Money.sum(x, acc) end)
     assert length(parts) == 5
   end
 

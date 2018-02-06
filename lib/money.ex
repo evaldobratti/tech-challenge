@@ -95,11 +95,11 @@ defmodule Money do
     {:ok,  distributed_parts}
   end
 
-  def distribute(0, list) do 
+  defp distribute(0, list) do 
     list
   end
 
-  def distribute(difference, [ {_, _, currency} = part | others ]) do
+  defp distribute(difference, [ {_, _, currency} = part | others ]) do
     [raw_integer(to_raw_integer(part) + 1, currency)] ++ distribute(difference - 1, others)
   end
 

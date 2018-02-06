@@ -33,12 +33,12 @@ defmodule AccountTest do
     assert {:error, "Name should not be empty"} = Account.create("", zero)
   end
 
-  test "should return name as legal identifier for the account", context do 
+  test "should return name as identifier for the account", context do 
     zero = context.zero
 
     {:ok, account} = Account.create("Evaldo Bratti", zero)
 
-    assert Account.legal_identifier(account) == "Evaldo Bratti"
+    assert Account.id(account) == "Evaldo Bratti"
   end
 
   test "limit should not be negative", context do

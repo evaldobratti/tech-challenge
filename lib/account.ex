@@ -12,7 +12,7 @@ defmodule Account do
     end
   end
 
-  def legal_identifier({name, _, _}) do
+  def id({name, _, _}) do
     name
   end
 end
