@@ -96,7 +96,7 @@ defmodule MoneyTest do
   test "should change signal on negative", context do
     {:ok, money} = Money.create(1.50, context.brl)
 
-    {:ok, negative} = Money.negative(money)
+    negative = Money.negative(money)
     {integer, exponent, currency} = negative
 
     assert integer == -1
@@ -258,5 +258,13 @@ defmodule MoneyTest do
     {:ok, money} = Money.create(0, usd)
 
     assert !Money.is_negative(money)
+  end
+
+  test "should return true on is zero for zero money", context do
+    usd = context.usd
+
+    {:ok, zero} = Money.create(0, usd)
+
+    assert Money.is_zero(zero)
   end
 end

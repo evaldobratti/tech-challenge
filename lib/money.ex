@@ -47,7 +47,7 @@ defmodule Money do
   end
 
   def negative({integer, exponent, currency}) do
-    {:ok, {-integer, -exponent, currency}}
+    {-integer, -exponent, currency}
   end
 
   def to_string({integer, exponent, currency}) do
@@ -105,5 +105,9 @@ defmodule Money do
 
   def is_negative(money) do
     to_raw_integer(money) < 0
+  end
+
+  def is_zero(money) do
+    to_raw_integer(money) == 0
   end
 end
