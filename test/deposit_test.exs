@@ -105,7 +105,17 @@ defmodule FinancialSystemDepositTest do
     one_half_usd: one_half_usd
   } do
     msg = "This account operate with BRL, you can't deposit USD in it"
-    
+
     assert {:error, ^msg} = FinancialSystem.deposit(system, brl_account1, one_half_usd)
+  end
+
+  test "should not deposit in unregistered account", %{system: system, zero_brl: zero_brl} do
+    {:ok, unregistered_account} = Account.create(44, "Joker", zero_brl)
+
+    assert {:error, "Not registered account"} = FinancialSystem.deposit(system, unregistered_account, zero_brl)
+  end
+
+  test "should not deposit zero money", %{system: system, brl_account1: brl_account1, zero_brl: zero_brl} do
+    assert {:error, "Money from a transaction must be positive"} = FinancialSystem.deposit(system, brl_account1, zero_brl)
   end
 end

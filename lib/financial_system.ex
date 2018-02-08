@@ -40,6 +40,7 @@ defmodule FinancialSystem do
     account_currency = Account.get_native_currency(account)
     cond do
       money_currency != account_currency -> {:error, "This account operate with #{account_currency.code_alpha}, you can't deposit #{money_currency.code_alpha} in it"}
+      !is_registered_account(system, account) -> {:error, "Not registered account"}
       true ->
         deposit = get_deposit_account(system, money_currency)
 
@@ -53,6 +54,10 @@ defmodule FinancialSystem do
   defp get_deposit_account(system, currency) do
     {_, deposit, _} = Map.get(system, currency)
     deposit
+  end
+
+  def is_registered_account(system, account) do
+    Enum.member?(system.accounts, account)
   end
 
   def balance(system, account) do
