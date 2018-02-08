@@ -12,7 +12,15 @@ defmodule Account do
     end
   end
 
+  def get_id(account) do
+    elem(account, 0)
+  end
+
   def get_name(account) do
     elem(account, 1)
+  end
+
+  def get_native_currency(account) do
+    elem(account, 3)
   end
 end
