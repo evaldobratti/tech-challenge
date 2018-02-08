@@ -33,7 +33,7 @@ defmodule FinancialSystemTest do
     assert length(accounts) == 3
 
     control_accounts_brl = Map.get(system, brl)
-    assert control_accounts_brl == accounts
+    assert control_accounts_brl == List.to_tuple(accounts)
   end
 
   test "should not add control accounts if the currency already has its ones", %{brl: brl} do

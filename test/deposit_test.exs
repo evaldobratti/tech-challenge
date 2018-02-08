@@ -46,22 +46,66 @@ defmodule FinancialSystemDepositTest do
     assert List.last(system.transactions) == transaction
   end
 
-  test "should calculate balance with no transactions", %{system: system, brl_account1: brl_account1, zero_brl: zero_brl} do
-    assert {:ok, ^zero_brl} = FinancialSystem.balance(system, brl_account1)
+  test "should calculate balance with no transactions", %{
+    system: system,
+    brl_account1: brl_account1,
+    zero_brl: zero_brl
+  } do
+    assert zero_brl == FinancialSystem.balance(system, brl_account1)
   end
 
-  test "should calculate balance after transactions", %{system: system, brl_account1: brl_account1, one_half_brl: one_half_brl, brl: brl} do
+  test "should calculate balance after transactions", %{
+    system: system,
+    brl_account1: brl_account1,
+    one_half_brl: one_half_brl,
+    brl: brl
+  } do
     {:ok, system, _} = FinancialSystem.deposit(system, brl_account1, one_half_brl)
 
-    assert {:ok, ^one_half_brl} = FinancialSystem.balance(system, brl_account1)
+    assert one_half_brl == FinancialSystem.balance(system, brl_account1)
 
     {:ok, system, _} = FinancialSystem.deposit(system, brl_account1, one_half_brl)
-    
+
     {:ok, three_brl} = Money.create(3, brl)
-    assert {:ok, ^three_brl} = FinancialSystem.balance(system, brl_account1)
+    assert three_brl == FinancialSystem.balance(system, brl_account1)
   end
 
-  test "should not deposit money with different currency from the account" do
-    assert false
+  test "should return all transactions an account has participated on transactions_envolving/1", %{
+    system: system,
+    brl_account1: brl_account1,
+    brl_account2: brl_account2,
+    one_half_brl: one_half_brl,
+    brl: brl
+  } do
+    {:ok, system, _} = FinancialSystem.deposit(system, brl_account1, one_half_brl)
+    {:ok, system, _} = FinancialSystem.deposit(system, brl_account2, one_half_brl)
+    {:ok, system, _} = FinancialSystem.deposit(system, brl_account1, one_half_brl)
+    {:ok, system, _} = FinancialSystem.deposit(system, brl_account1, one_half_brl)
+
+    transactions_acc1 = FinancialSystem.transactions_envolving(system, brl_account1)
+
+    assert {1, _, {^brl_account1, ^one_half_brl}} = Enum.at(transactions_acc1, 0)
+    assert {3, _, {^brl_account1, ^one_half_brl}} = Enum.at(transactions_acc1, 1)
+    assert {4, _, {^brl_account1, ^one_half_brl}} = Enum.at(transactions_acc1, 2)
+    assert length(transactions_acc1) == 3
+
+    {:ok, balance_acc1} = Money.create(4.5, brl)
+    assert balance_acc1 == FinancialSystem.balance(system, brl_account1)
+
+    transactions_acc2 = FinancialSystem.transactions_envolving(system, brl_account2)
+
+    assert {2, _, {^brl_account2, ^one_half_brl}} = Enum.at(transactions_acc2, 0)
+    assert length(transactions_acc2) == 1
+    assert one_half_brl == FinancialSystem.balance(system, brl_account2)
+  end
+
+  test "should not deposit money with different currency from the account",%{
+    system: system,
+    brl_account1: brl_account1,
+    one_half_usd: one_half_usd
+  } do
+    msg = "This account operate with BRL, you can't deposit USD in it"
+    
+    assert {:error, ^msg} = FinancialSystem.deposit(system, brl_account1, one_half_usd)
   end
 end

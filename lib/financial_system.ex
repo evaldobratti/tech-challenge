@@ -17,7 +17,7 @@ defmodule FinancialSystem do
       {:ok, accounts} <- AccountsManagement.add(accounts, "withdrawal " <> code_alpha, zero)
     do
       %{system | :accounts => accounts}
-      |> Map.put(currency, Enum.take(accounts, -3))
+      |> Map.put(currency, Enum.take(accounts, -3) |> List.to_tuple())
     else
       {:error, "Already registered account"} -> system
     end
@@ -36,30 +36,48 @@ defmodule FinancialSystem do
   end
 
   def deposit(system, account, money) do
-    {_, _, currency} = money
-    deposit = Map.get(system, currency) |> Enum.at(1)
+    money_currency = Money.get_currency(money)
+    account_currency = Account.get_native_currency(account)
+    cond do
+      money_currency != account_currency -> {:error, "This account operate with #{account_currency.code_alpha}, you can't deposit #{money_currency.code_alpha} in it"}
+      true ->
+        deposit = get_deposit_account(system, money_currency)
 
-    case Transaction.create(length(system.transactions) + 1, deposit, account, money) do
-      {:ok, transaction} -> {:ok, %{system | transactions: system.transactions ++ [transaction]}, transaction }
-      {:error, msg} -> {:error, msg}
+        case Transaction.create(length(system.transactions) + 1, deposit, account, money) do
+          {:ok, transaction} -> {:ok, %{system | transactions: system.transactions ++ [transaction]}, transaction }
+          {:error, msg} -> {:error, msg}
+        end
     end
+  end
+
+  defp get_deposit_account(system, currency) do
+    {_, deposit, _} = Map.get(system, currency)
+    deposit
   end
 
   def balance(system, account) do
     limit = Account.get_limit(account)
 
-    credits = system.transactions
-      |> Enum.filter(fn t -> 
-        {_, _, {transaction_account, _}} = t
-        transaction_account == account
-      end)
+    credits = system
+      |> transactions_envolving(account)
       |> Enum.map(fn t -> 
         {_, _, {_, money}} = t
         money
       end)
 
     #TODO put reduce/sum in money module
-    Enum.reduce(credits, {:ok, limit}, fn(x, {:ok, acc}) -> Money.sum(x, acc) end)
+    {:ok, balance} = Enum.reduce(credits, {:ok, limit}, fn(x, {:ok, acc}) -> Money.sum(x, acc) end)
+    balance
+  end
+
+  def transactions_envolving(system, account) do
+    Enum.filter(system.transactions, fn t ->
+      case t do
+        {_, {^account, _}, {_, _}} -> true
+        {_, {_, _}, {^account, _}} -> true
+        _ -> false
+      end
+    end)
   end
 
 end

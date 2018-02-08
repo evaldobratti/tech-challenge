@@ -110,4 +110,9 @@ defmodule Money do
   def is_zero(money) do
     to_raw_integer(money) == 0
   end
+
+  def get_currency(money) do
+    {_, _, currency} = money
+    currency
+  end
 end

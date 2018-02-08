@@ -267,4 +267,12 @@ defmodule MoneyTest do
 
     assert Money.is_zero(zero)
   end
+
+  test "should return currency on get_currency", context do
+    usd = context.usd
+
+    {:ok, zero} = Money.create(0, usd)
+
+    assert usd == Money.get_currency(zero)
+  end
 end
