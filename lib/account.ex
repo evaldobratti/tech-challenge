@@ -23,4 +23,8 @@ defmodule Account do
   def get_native_currency(account) do
     elem(account, 3)
   end
+
+  def get_limit(account) do
+    elem(account, 2)
+  end
 end

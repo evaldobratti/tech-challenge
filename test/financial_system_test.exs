@@ -46,21 +46,19 @@ defmodule FinancialSystemTest do
   end
 
   test "should add new user account", %{brl: brl, zero_brl: zero_brl} do
-    {:ok, system} = FinancialSystem.create("system")
+    {:ok, _, new_account} = FinancialSystem.create("system")
       |> FinancialSystem.create_currency_control_accounts(brl)
       |> FinancialSystem.add_account("Bruce Wayne", zero_brl)
 
-    new_acc = List.last(system.accounts)
-
-    assert {4, "Bruce Wayne", ^zero_brl, ^brl} = new_acc
+    assert {4, "Bruce Wayne", ^zero_brl, ^brl} = new_account
   end
 
   test "should automatically create control accounts when new account limit currency is added", 
     %{brl: brl, zero_brl: zero_brl, usd: usd, zero_usd: zero_usd} do
     
     system = with system <- FinancialSystem.create("system"),
-      {:ok, system} <- FinancialSystem.add_account(system, "Bruce Wayne", zero_brl),
-      {:ok, system} <- FinancialSystem.add_account(system, "Clark Kent", zero_usd)
+      {:ok, system, _} <- FinancialSystem.add_account(system, "Bruce Wayne", zero_brl),
+      {:ok, system, _} <- FinancialSystem.add_account(system, "Clark Kent", zero_usd)
       do
         system
       end
