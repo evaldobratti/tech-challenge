@@ -104,7 +104,7 @@ defmodule FinancialSystemDepositTest do
     brl_account1: brl_account1,
     one_half_usd: one_half_usd
   } do
-    msg = "This account operate with BRL, you can't deposit USD in it"
+    msg = "This account operate with BRL, you can't directly operate with USD in it"
 
     assert {:error, ^msg} = FinancialSystem.deposit(system, brl_account1, one_half_usd)
   end

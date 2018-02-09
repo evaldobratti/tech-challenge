@@ -39,7 +39,7 @@ defmodule FinancialSystem do
     money_currency = Money.get_currency(money)
     account_currency = Account.get_native_currency(account)
     cond do
-      money_currency != account_currency -> {:error, "This account operate with #{account_currency.code_alpha}, you can't deposit #{money_currency.code_alpha} in it"}
+      money_currency != account_currency -> {:error, "This account operate with #{account_currency.code_alpha}, you can't directly operate with #{money_currency.code_alpha} in it"}
       !is_registered_account(system, account) -> {:error, "Not registered account"}
       true ->
         deposit = get_deposit_account(system, money_currency)
@@ -51,9 +51,41 @@ defmodule FinancialSystem do
     end
   end
 
+  def withdraw(system, account, money) do
+    money_currency = Money.get_currency(money)
+    account_currency = Account.get_native_currency(account)
+
+    #TODO refactor this code and unify with deposit
+    cond do
+      money_currency != account_currency -> {:error, "This account operate with #{account_currency.code_alpha}, you can't directly operate with #{money_currency.code_alpha} in it"}
+      !is_registered_account(system, account) -> {:error, "Not registered account"}
+      true ->
+        withdraw = get_withdraw_account(system, money_currency)
+        account_limit = Account.get_limit(account)
+
+        funds = balance(system, account)
+        {:ok, funds} = Money.sum(funds, account_limit)
+        {:ok, funds} = Money.sum(funds, Money.negative(money))
+
+        cond do
+          Money.is_negative(funds) -> {:error, "No sufficient funds"}
+          true ->
+            case Transaction.create(length(system.transactions) + 1, account, withdraw, money) do
+              {:ok, transaction} -> {:ok, %{system | transactions: system.transactions ++ [transaction]}, transaction }
+              {:error, msg} -> {:error, msg}
+            end
+        end
+    end
+  end
+
   defp get_deposit_account(system, currency) do
     {_, deposit, _} = Map.get(system, currency)
     deposit
+  end
+
+  defp get_withdraw_account(system, currency) do
+    {_, _, withdraw} = Map.get(system, currency)
+    withdraw
   end
 
   def is_registered_account(system, account) do
@@ -61,17 +93,20 @@ defmodule FinancialSystem do
   end
 
   def balance(system, account) do
-    limit = Account.get_limit(account)
-
+    currency = Account.get_native_currency(account)
+    zero = Money.create(0, currency)
+    
     credits = system
       |> transactions_envolving(account)
       |> Enum.map(fn t -> 
-        {_, _, {_, money}} = t
-        money
+        case t do
+          {_, {^account, debit}, _} -> debit
+          {_, _, {^account, credit}} -> credit
+        end
       end)
 
     #TODO put reduce/sum in money module
-    {:ok, balance} = Enum.reduce(credits, {:ok, limit}, fn(x, {:ok, acc}) -> Money.sum(x, acc) end)
+    {:ok, balance} = Enum.reduce(credits, zero, fn(x, {:ok, acc}) -> Money.sum(x, acc) end)
     balance
   end
 
