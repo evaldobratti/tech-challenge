@@ -1,4 +1,4 @@
-# Tech Challenge 
+# Tech Challenge [![Build Status](https://travis-ci.org/evaldobratti/tech-challenge.svg?branch=master)](https://travis-ci.org/evaldobratti/tech-challenge)
 
 Bem vindo(a)! Esse é o Tech Challenge Elixir!
 
