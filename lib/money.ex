@@ -111,6 +111,10 @@ defmodule Money do
     to_raw_integer(money) == 0
   end
 
+  def is_positive(money) do
+    to_raw_integer(money) > 0
+  end
+
   def get_currency(money) do
     {_, _, currency} = money
     currency

@@ -36,41 +36,43 @@ defmodule FinancialSystem do
   end
 
   def deposit(system, account, money) do
-    money_currency = Money.get_currency(money)
-    account_currency = Account.get_native_currency(account)
-    cond do
-      money_currency != account_currency -> {:error, "This account operate with #{account_currency.code_alpha}, you can't directly operate with #{money_currency.code_alpha} in it"}
-      !is_registered_account(system, account) -> {:error, "Not registered account"}
-      true ->
-        deposit = get_deposit_account(system, money_currency)
+    deposit_account = get_deposit_account(system, Account.get_native_currency(account))
 
-        case Transaction.create(length(system.transactions) + 1, deposit, account, money) do
-          {:ok, transaction} -> {:ok, %{system | transactions: system.transactions ++ [transaction]}, transaction }
-          {:error, msg} -> {:error, msg}
-        end
-    end
+    transfer(system, deposit_account, account, money, false)
   end
 
   def withdraw(system, account, money) do
+    withdraw_account = get_withdraw_account(system, Account.get_native_currency(account))
+
+    transfer(system, account, withdraw_account, money, true)
+  end
+
+  defp transfer(system, from, to, money, check_funds) do
     money_currency = Money.get_currency(money)
-    account_currency = Account.get_native_currency(account)
+    from_currency = Account.get_native_currency(from)
+    to_currency = Account.get_native_currency(to)
 
-    #TODO refactor this code and unify with deposit
     cond do
-      money_currency != account_currency -> {:error, "This account operate with #{account_currency.code_alpha}, you can't directly operate with #{money_currency.code_alpha} in it"}
-      !is_registered_account(system, account) -> {:error, "Not registered account"}
+      money_currency != from_currency -> {:error, "This account operate with #{from_currency.code_alpha}, you can't directly operate with #{money_currency.code_alpha} in it"}
+      money_currency != to_currency -> {:error, "This account operate with #{to_currency.code_alpha}, you can't directly operate with #{money_currency.code_alpha} in it"}
+      !is_registered_account(system, from) -> {:error, "Not registered account"}
+      !is_registered_account(system, to) -> {:error, "Not registered account"}
       true ->
-        withdraw = get_withdraw_account(system, money_currency)
-        account_limit = Account.get_limit(account)
+        has_funds = if check_funds do
+          account_limit = Account.get_limit(from)
 
-        funds = balance(system, account)
-        {:ok, funds} = Money.sum(funds, account_limit)
-        {:ok, funds} = Money.sum(funds, Money.negative(money))
+          funds = balance(system, from)
+          {:ok, funds} = Money.sum(funds, account_limit)
+          {:ok, funds} = Money.sum(funds, Money.negative(money))
+          Money.is_positive(funds) or Money.is_zero(funds)
+        else
+          true
+        end
 
         cond do
-          Money.is_negative(funds) -> {:error, "No sufficient funds"}
+          !has_funds -> {:error, "No sufficient funds"}
           true ->
-            case Transaction.create(length(system.transactions) + 1, account, withdraw, money) do
+            case Transaction.create(length(system.transactions) + 1, from, to, money) do
               {:ok, transaction} -> {:ok, %{system | transactions: system.transactions ++ [transaction]}, transaction }
               {:error, msg} -> {:error, msg}
             end
