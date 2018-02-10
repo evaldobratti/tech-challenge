@@ -92,7 +92,7 @@ defmodule Money do
 
     distributed_parts = distribute(difference, parts)
 
-    {:ok,  distributed_parts}
+    distributed_parts
   end
 
   defp distribute(0, list) do 

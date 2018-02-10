@@ -47,6 +47,30 @@ defmodule FinancialSystem do
     transfer(system, account, withdraw_account, money, true)
   end
 
+  def transfer(system, from, to, money) when not is_list(to) do
+    transfer(system, from, to, money, true)
+  end
+
+  def transfer(system, from, list_to, money) when is_list(list_to) do
+    parts = Money.divide(money, length(list_to))
+    case transfer_parts(system, from, list_to, parts) do
+      {:ok, system, _} -> {:ok, system, Enum.take(system.transactions, -length(list_to))}
+      {:error, message} -> {:error, message}
+    end
+  end
+
+  defp transfer_parts(system, from, [to | others_to], [part | others_parts]) do
+    case transfer(system, from, to, part, true) do
+      {:ok, system, transaction} -> 
+        if length(others_to) > 0 do
+          transfer_parts(system, from, others_to, others_parts)
+        else
+          {:ok, system, transaction}
+        end
+      {:error, msg} -> {:error, msg}
+    end
+  end
+
   defp transfer(system, from, to, money, check_funds) do
     money_currency = Money.get_currency(money)
     from_currency = Account.get_native_currency(from)

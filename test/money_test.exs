@@ -200,7 +200,7 @@ defmodule MoneyTest do
     usd = context.usd
     {:ok, money} = Money.create(1, usd)
 
-    {:ok, parts} = Money.divide(money, 2)
+    parts = Money.divide(money, 2)
 
     assert {0, 50, ^usd} = Enum.at(parts, 0)
     assert {0, 50, ^usd} = Enum.at(parts, 1)
@@ -212,7 +212,7 @@ defmodule MoneyTest do
 
     {:ok, money} = Money.create(1, usd)
 
-    {:ok, parts} = Money.divide(money, 3)
+    parts = Money.divide(money, 3)
 
     assert {0, 34, ^usd} = Enum.at(parts, 0)
     assert {0, 33, ^usd} = Enum.at(parts, 1)
@@ -225,7 +225,7 @@ defmodule MoneyTest do
 
     {:ok, money} = Money.create(2.33, usd)
 
-    {:ok, parts} = Money.divide(money, 5)
+    parts = Money.divide(money, 5)
 
     assert {0, 47, ^usd} = Enum.at(parts, 0)
     assert {0, 47, ^usd} = Enum.at(parts, 1)
