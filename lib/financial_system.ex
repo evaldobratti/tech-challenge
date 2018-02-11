@@ -12,17 +12,21 @@ defmodule FinancialSystem do
   def create_currency_control_accounts(system, currency) do
     %{code_alpha: code_alpha} = currency
 
-    with {:ok, zero} <- Money.create(0, currency),
-         {:ok, accounts} <- AccountsManagement.add(system.accounts, "bank " <> code_alpha, zero),
-         {:ok, accounts} <- AccountsManagement.add(accounts, "deposit " <> code_alpha, zero),
-         {:ok, accounts} <- AccountsManagement.add(accounts, "withdrawal " <> code_alpha, zero) do
-      currency_accounts = Enum.take(accounts, -3)
-      private_accounts = system.private_accounts ++ currency_accounts
+    if Map.get(system, currency) == nil do
+      with {:ok, zero} <- Money.create(0, currency),
+          {:ok, accounts} <- AccountsManagement.add(system.accounts, "bank " <> code_alpha, zero),
+          {:ok, accounts} <- AccountsManagement.add(accounts, "deposit " <> code_alpha, zero),
+          {:ok, accounts} <- AccountsManagement.add(accounts, "withdrawal " <> code_alpha, zero) do
+        currency_accounts = Enum.take(accounts, -3)
+        private_accounts = system.private_accounts ++ currency_accounts
 
-      %{system | :accounts => accounts, :private_accounts => private_accounts}
-      |> Map.put(currency, List.to_tuple(currency_accounts))
+        %{system | :accounts => accounts, :private_accounts => private_accounts}
+        |> Map.put(currency, List.to_tuple(currency_accounts))
+      else
+        {:error, "Already registered account"} -> system
+      end
     else
-      {:error, "Already registered account"} -> system
+      system
     end
   end
 
@@ -39,25 +43,29 @@ defmodule FinancialSystem do
 
   def deposit(system, account, money) do
     case Transaction.is_compatible_currencies(account, money) do
-      {:ok} -> 
-        deposit_account = get_deposit_account(system, Account.get_native_currency(account))
-        transfer(system, deposit_account, account, money, false)
+      {:ok} -> deposit(system, account, money, 1)
       {:error, msg} -> {:error, msg}
     end
   end
 
+  def deposit(system, account, money, rate) do
+    account_currency = Account.get_native_currency(account)
+    money_currency = Money.get_currency(money)
+    {:ok, exchanged, _} = Money.exchange(money, account_currency, rate)
+    {system, deposit_account} = get_deposit_account(system, money_currency)
+    transfer(system, deposit_account, Money.negative(money), account, exchanged, false)
+  end
+
   def withdraw(system, account, money) do
     case Transaction.is_compatible_currencies(account, money) do
-      {:ok} -> 
-        withdraw_account = get_withdraw_account(system, Account.get_native_currency(account))
-        transfer(system, account, withdraw_account, money, true)
+      {:ok} -> withdraw(system, account, money, Money.get_currency(money), 1)
       {:error, msg} -> {:error, msg}
     end
   end
 
   def withdraw(system, account, money, currency, rate) do
     {:ok, exchanged, _} = Money.exchange(money, currency, rate)
-    withdraw_account = get_withdraw_account(system, currency)
+    {system, withdraw_account} = get_withdraw_account(system, currency)
     transfer(system, account, Money.negative(money), withdraw_account, exchanged, true)
   end
 
@@ -150,13 +158,15 @@ defmodule FinancialSystem do
   end
 
   defp get_deposit_account(system, currency) do
+    system = create_currency_control_accounts(system, currency)
     {_, deposit, _} = Map.get(system, currency)
-    deposit
+    {system, deposit}
   end
 
   defp get_withdraw_account(system, currency) do
+    system = create_currency_control_accounts(system, currency)
     {_, _, withdraw} = Map.get(system, currency)
-    withdraw
+    {system, withdraw}
   end
 
   def is_registered_account(system, account) do

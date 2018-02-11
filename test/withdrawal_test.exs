@@ -115,14 +115,12 @@ defmodule FinancialSystemWithdrawalTest do
     one_brl_limit_account: one_brl_limit_account
   } do
     {:ok, zero_usd} = Money.create(0, usd)
-    {:ok, system, _} = FinancialSystem.add_account(system, "Bruce Wayne", zero_usd) #TODO remove this after creating control accounts on withdraw
-
     {:ok, system, transaction} = FinancialSystem.withdraw(system, one_brl_limit_account, one_brl, usd, 0.33)
 
     {:ok, exchanged} = Money.create(0.33, usd)
     withdraw = Money.negative(one_brl)
     
     assert {1, {^one_brl_limit_account, ^withdraw}, {_, ^exchanged}} = transaction
-    
   end
+  
 end
