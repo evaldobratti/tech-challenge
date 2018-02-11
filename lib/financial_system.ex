@@ -6,18 +6,21 @@ defmodule FinancialSystem do
   alias Transaction
 
   def create(name) do
-    %{name: name, accounts: [], transactions: []}
+    %{name: name, accounts: [], transactions: [], private_accounts: []}
   end
 
   def create_currency_control_accounts(system, currency) do
     %{code_alpha: code_alpha} = currency
+
     with {:ok, zero} <- Money.create(0, currency),
-      {:ok, accounts} <- AccountsManagement.add(system.accounts, "bank " <> code_alpha, zero),
-      {:ok, accounts} <- AccountsManagement.add(accounts, "deposit " <> code_alpha, zero),
-      {:ok, accounts} <- AccountsManagement.add(accounts, "withdrawal " <> code_alpha, zero)
-    do
-      %{system | :accounts => accounts}
-      |> Map.put(currency, Enum.take(accounts, -3) |> List.to_tuple())
+         {:ok, accounts} <- AccountsManagement.add(system.accounts, "bank " <> code_alpha, zero),
+         {:ok, accounts} <- AccountsManagement.add(accounts, "deposit " <> code_alpha, zero),
+         {:ok, accounts} <- AccountsManagement.add(accounts, "withdrawal " <> code_alpha, zero) do
+      currency_accounts = Enum.take(accounts, -3)
+      private_accounts = system.private_accounts ++ currency_accounts
+
+      %{system | :accounts => accounts, :private_accounts => private_accounts}
+      |> Map.put(currency, List.to_tuple(currency_accounts))
     else
       {:error, "Already registered account"} -> system
     end
@@ -27,9 +30,8 @@ defmodule FinancialSystem do
     {_, _, currency} = limit
 
     with system <- create_currency_control_accounts(system, currency),
-      {:ok, accounts} <- AccountsManagement.add(system.accounts, account_name, limit)
-    do
-      {:ok, %{system | :accounts => accounts }, List.last(accounts)}
+         {:ok, accounts} <- AccountsManagement.add(system.accounts, account_name, limit) do
+      {:ok, %{system | :accounts => accounts}, List.last(accounts)}
     else
       {:error, msg} -> {:error, msg}
     end
@@ -48,11 +50,15 @@ defmodule FinancialSystem do
   end
 
   def transfer(system, from, to, money) when not is_list(to) do
-    transfer(system, from, to, money, true)
+    case valid_transfer(system, from, to) do
+      {:ok} -> transfer(system, from, to, money, true)
+      {:error, msg} -> {:error, msg}
+    end
   end
 
   def transfer(system, from, list_to, money) when is_list(list_to) do
     parts = Money.divide(money, length(list_to))
+
     case transfer_parts(system, from, list_to, parts) do
       {:ok, system, _} -> {:ok, system, Enum.take(system.transactions, -length(list_to))}
       {:error, message} -> {:error, message}
@@ -60,15 +66,34 @@ defmodule FinancialSystem do
   end
 
   defp transfer_parts(system, from, [to | others_to], [part | others_parts]) do
-    case transfer(system, from, to, part, true) do
-      {:ok, system, transaction} -> 
-        if length(others_to) > 0 do
-          transfer_parts(system, from, others_to, others_parts)
-        else
-          {:ok, system, transaction}
+    case valid_transfer(system, from, to) do
+      {:ok} ->
+        case transfer(system, from, to, part, true) do
+          {:ok, system, transaction} ->
+            if length(others_to) > 0 do
+              transfer_parts(system, from, others_to, others_parts)
+            else
+              {:ok, system, transaction}
+            end
+          {:error, msg} ->
+            {:error, msg}
         end
-      {:error, msg} -> {:error, msg}
+
+      {:error, msg} ->
+        {:error, msg}
     end
+  end
+
+  def valid_transfer(system, from, to) do
+    cond do
+      is_private_account(system, from) -> {:error, "You cannot transfer using private accounts"}
+      is_private_account(system, to) -> {:error, "You cannot transfer using private accounts"}
+      true -> {:ok}
+    end
+  end
+
+  defp is_private_account(system, account) do
+    Enum.member?(system.private_accounts, account)
   end
 
   defp transfer(system, from, to, money, check_funds) do
@@ -77,28 +102,48 @@ defmodule FinancialSystem do
     to_currency = Account.get_native_currency(to)
 
     cond do
-      money_currency != from_currency -> {:error, "This account operate with #{from_currency.code_alpha}, you can't directly operate with #{money_currency.code_alpha} in it"}
-      money_currency != to_currency -> {:error, "This account operate with #{to_currency.code_alpha}, you can't directly operate with #{money_currency.code_alpha} in it"}
-      !is_registered_account(system, from) -> {:error, "Not registered account"}
-      !is_registered_account(system, to) -> {:error, "Not registered account"}
-      true ->
-        has_funds = if check_funds do
-          account_limit = Account.get_limit(from)
+      money_currency != from_currency ->
+        {:error,
+         "This account operate with #{from_currency.code_alpha}, you can't directly operate with #{
+           money_currency.code_alpha
+         } in it"}
 
-          funds = balance(system, from)
-          {:ok, funds} = Money.sum(funds, account_limit)
-          {:ok, funds} = Money.sum(funds, Money.negative(money))
-          Money.is_positive(funds) or Money.is_zero(funds)
-        else
-          true
-        end
+      money_currency != to_currency ->
+        {:error,
+         "This account operate with #{to_currency.code_alpha}, you can't directly operate with #{
+           money_currency.code_alpha
+         } in it"}
+
+      !is_registered_account(system, from) ->
+        {:error, "Not registered account"}
+
+      !is_registered_account(system, to) ->
+        {:error, "Not registered account"}
+
+      true ->
+        has_funds =
+          if check_funds do
+            account_limit = Account.get_limit(from)
+
+            funds = balance(system, from)
+            {:ok, funds} = Money.sum(funds, account_limit)
+            {:ok, funds} = Money.sum(funds, Money.negative(money))
+            Money.is_positive(funds) or Money.is_zero(funds)
+          else
+            true
+          end
 
         cond do
-          !has_funds -> {:error, "No sufficient funds"}
+          !has_funds ->
+            {:error, "No sufficient funds"}
+
           true ->
             case Transaction.create(length(system.transactions) + 1, from, to, money) do
-              {:ok, transaction} -> {:ok, %{system | transactions: system.transactions ++ [transaction]}, transaction }
-              {:error, msg} -> {:error, msg}
+              {:ok, transaction} ->
+                {:ok, %{system | transactions: system.transactions ++ [transaction]}, transaction}
+
+              {:error, msg} ->
+                {:error, msg}
             end
         end
     end
@@ -121,18 +166,19 @@ defmodule FinancialSystem do
   def balance(system, account) do
     currency = Account.get_native_currency(account)
     zero = Money.create(0, currency)
-    
-    credits = system
+
+    credits =
+      system
       |> transactions_envolving(account)
-      |> Enum.map(fn t -> 
+      |> Enum.map(fn t ->
         case t do
           {_, {^account, debit}, _} -> debit
           {_, _, {^account, credit}} -> credit
         end
       end)
 
-    #TODO put reduce/sum in money module
-    {:ok, balance} = Enum.reduce(credits, zero, fn(x, {:ok, acc}) -> Money.sum(x, acc) end)
+    # TODO put reduce/sum in money module
+    {:ok, balance} = Enum.reduce(credits, zero, fn x, {:ok, acc} -> Money.sum(x, acc) end)
     balance
   end
 
@@ -145,5 +191,4 @@ defmodule FinancialSystem do
       end
     end)
   end
-
 end
