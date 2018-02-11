@@ -8,14 +8,12 @@ defmodule Money do
   end
 
   def create(amount, currency) when is_float(amount) do
-    cond do
-      currency == nil ->
+    if currency == nil do
         {:error, "Currency is not present"}
+    else
+      no_comma_amout = Float.round(amount * Currency.factor(currency))
 
-      true ->
-        no_comma_amout = Float.round(amount * Currency.factor(currency))
-
-        {:ok, raw_integer(trunc(no_comma_amout), currency)}
+      {:ok, raw_integer(trunc(no_comma_amout), currency)}
     end
   end
 
@@ -55,17 +53,13 @@ defmodule Money do
   end
 
   def exchange({_, _, currency_from} = money_from, currency_to, rate) do
-    cond do
-      currency_from == currency_to ->
-        cond do
-          rate != 1 ->
+    if currency_from == currency_to do
+       if rate != 1 do
             {:error, "Exchanging from to the same currency should have 1 as rate"}
-
-          true ->
+       else
             {:ok, money_from, {0, currency_from}}
         end
-
-      true ->
+    else
         amount = to_raw_integer(money_from)
 
         exchanged_amount = amount * rate
@@ -87,20 +81,21 @@ defmodule Money do
     divided = div(amount, divisor)
 
     difference = amount - (divided * divisor)
-    
-    parts = Enum.map(1..divisor, fn(_)-> raw_integer(divided, currency) end)
+
+    parts = Enum.map(1..divisor, fn(_) -> raw_integer(divided, currency) end)
 
     distributed_parts = distribute(difference, parts)
 
     distributed_parts
   end
 
-  defp distribute(0, list) do 
+  defp distribute(0, list) do
     list
   end
 
   defp distribute(difference, [ {_, _, currency} = part | others ]) do
-    [raw_integer(to_raw_integer(part) + 1, currency)] ++ distribute(difference - 1, others)
+    new_amount = to_raw_integer(part) + 1
+    [raw_integer(new_amount, currency)] ++ distribute(difference - 1, others)
   end
 
   def is_negative(money) do
@@ -118,5 +113,10 @@ defmodule Money do
   def get_currency(money) do
     {_, _, currency} = money
     currency
+  end
+
+  def sum_parts(currency, moneys) do
+    zero = Money.create(0, currency)
+    Enum.reduce(moneys, zero, fn x, {:ok, acc} -> Money.sum(x, acc) end)
   end
 end

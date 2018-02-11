@@ -12,15 +12,25 @@ defmodule FinancialSystemTest do
     {:ok, zero_brl} = Money.create(0, brl)
     {:ok, zero_usd} = Money.create(0, usd)
 
-    %{brl: brl, usd: usd, one_half_brl: one_half_brl, one_half_usd: one_half_usd,
-    zero_brl: zero_brl, zero_usd: zero_usd}
+    %{
+      brl: brl,
+      usd: usd,
+      one_half_brl: one_half_brl,
+      one_half_usd: one_half_usd,
+      zero_brl: zero_brl,
+      zero_usd: zero_usd
+    }
   end
 
   test "should create financial system with empty control structures" do
-    assert %{:name => "Financial System", :accounts => [], :transactions => []} = FinancialSystem.create("Financial System")
+    assert %{:name => "Financial System", :accounts => [], :transactions => []} =
+             FinancialSystem.create("Financial System")
   end
 
-  test "should create control accounts for a new currency in the sytem", %{brl: brl, zero_brl: zero_brl} do
+  test "should create control accounts for a new currency in the sytem", %{
+    brl: brl,
+    zero_brl: zero_brl
+  } do
     system = FinancialSystem.create("system")
 
     system = FinancialSystem.create_currency_control_accounts(system, brl)
@@ -46,20 +56,23 @@ defmodule FinancialSystemTest do
   end
 
   test "should add new user account", %{brl: brl, zero_brl: zero_brl} do
-    {:ok, _, new_account} = FinancialSystem.create("system")
+    {:ok, _, new_account} =
+      FinancialSystem.create("system")
       |> FinancialSystem.create_currency_control_accounts(brl)
       |> FinancialSystem.add_account("Bruce Wayne", zero_brl)
 
     assert {4, "Bruce Wayne", ^zero_brl, ^brl} = new_account
   end
 
-  test "should automatically create control accounts when new account limit currency is added", 
-    %{brl: brl, zero_brl: zero_brl, usd: usd, zero_usd: zero_usd} do
-    
+  test "should automatically create control accounts when new account limit currency is added", %{
+    brl: brl,
+    zero_brl: zero_brl,
+    usd: usd,
+    zero_usd: zero_usd
+  } do
     system = with system <- FinancialSystem.create("system"),
-      {:ok, system, _} <- FinancialSystem.add_account(system, "Bruce Wayne", zero_brl),
-      {:ok, system, _} <- FinancialSystem.add_account(system, "Clark Kent", zero_usd)
-      do
+           {:ok, system, _} <- FinancialSystem.add_account(system, "Bruce Wayne", zero_brl),
+           {:ok, system, _} <- FinancialSystem.add_account(system, "Clark Kent", zero_usd) do
         system
       end
 
@@ -78,31 +91,31 @@ defmodule FinancialSystemTest do
 
   @tag :skip
   test "User should be able to transfer money to another account" do
-    assert :false
+    assert false
   end
 
   @tag :skip
   test "User cannot transfer if not enough money available on the account" do
-    assert :false
+    assert false
   end
 
   @tag :skip
   test "A transfer should be cancelled if an error occurs" do
-    assert :false
+    assert false
   end
 
   @tag :skip
   test "A transfer can be splitted between 2 or more accounts" do
-    assert :false
+    assert false
   end
 
   @tag :skip
   test "User should be able to exchange money between different currencies" do
-    assert :false
+    assert false
   end
 
   @tag :skip
   test "Currencies should be in compliance with ISO 4217" do
-    assert :false
+    assert false
   end
 end

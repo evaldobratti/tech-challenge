@@ -4,6 +4,7 @@ defmodule FinancialSystem do
   """
 
   alias Transaction
+  import AccountsManagement
 
   def create(name) do
     %{name: name, accounts: [], transactions: [], private_accounts: []}
@@ -14,9 +15,9 @@ defmodule FinancialSystem do
 
     if Map.get(system, currency) == nil do
       with {:ok, zero} <- Money.create(0, currency),
-          {:ok, accounts} <- AccountsManagement.add(system.accounts, "bank " <> code_alpha, zero),
-          {:ok, accounts} <- AccountsManagement.add(accounts, "deposit " <> code_alpha, zero),
-          {:ok, accounts} <- AccountsManagement.add(accounts, "withdrawal " <> code_alpha, zero) do
+          {:ok, accounts} <- add(system.accounts, "bank " <> code_alpha, zero),
+          {:ok, accounts} <- add(accounts, "deposit " <> code_alpha, zero),
+          {:ok, accounts} <- add(accounts, "withdrawal " <> code_alpha, zero) do
         currency_accounts = Enum.take(accounts, -3)
         private_accounts = system.private_accounts ++ currency_accounts
 
@@ -34,7 +35,7 @@ defmodule FinancialSystem do
     {_, _, currency} = limit
 
     with system <- create_currency_control_accounts(system, currency),
-         {:ok, accounts} <- AccountsManagement.add(system.accounts, account_name, limit) do
+         {:ok, accounts} <- add(system.accounts, account_name, limit) do
       {:ok, %{system | :accounts => accounts}, List.last(accounts)}
     else
       {:error, msg} -> {:error, msg}
@@ -50,13 +51,14 @@ defmodule FinancialSystem do
 
   def withdraw(system, account, money) do
     case Transaction.is_compatible_currencies(account, money) do
-      {:ok} -> withdraw_exchange(system, account, money, Money.get_currency(money), 1)
+      {:ok} ->
+        withdraw_exchange(system, account, money, Money.get_currency(money), 1)
       {:error, msg} -> {:error, msg}
     end
   end
 
   def transfer(system, from, to, money) when not is_list(to) do
-    with {:ok} <-valid_transfer(system, from, to),
+    with {:ok} <- valid_transfer(system, from, to),
       {:ok} <- Transaction.is_compatible_currencies(from, money),
       {:ok} <- Transaction.is_compatible_currencies(to, money) do
       transfer(system, from, to, money, true)
@@ -66,10 +68,11 @@ defmodule FinancialSystem do
   end
 
   def transfer(system, from, list_to, money) when is_list(list_to) do
-    parts = Money.divide(money, length(list_to))
+    n = length(list_to)
+    parts = Money.divide(money, n)
 
     case transfer_parts(system, from, list_to, parts) do
-      {:ok, system, _} -> {:ok, system, Enum.take(system.transactions, -length(list_to))}
+      {:ok, system, _} -> {:ok, system, Enum.take(system.transactions, -n)}
       {:error, message} -> {:error, message}
     end
   end
@@ -77,21 +80,26 @@ defmodule FinancialSystem do
   def deposit_exchange(system, account, money, rate) do
     account_currency = Account.get_native_currency(account)
     money_currency = Money.get_currency(money)
+    debit = Money.negative(money)
+
     {:ok, exchanged, _} = Money.exchange(money, account_currency, rate)
     {system, deposit_account} = get_deposit_account(system, money_currency)
-    transfer(system, deposit_account, Money.negative(money), account, exchanged, false)
+
+    transfer(system, deposit_account, debit, account, exchanged, false)
   end
 
   def withdraw_exchange(system, account, money, currency, rate) do
+    debit = Money.negative(money)
+
     {:ok, exchanged, _} = Money.exchange(money, currency, rate)
     {system, withdraw_account} = get_withdraw_account(system, currency)
-    transfer(system, account, Money.negative(money), withdraw_account, exchanged, true)
+    transfer(system, account, debit, withdraw_account, exchanged, true)
   end
 
   def transfer_exchange(system, from, to, money, rate) do
     to_currency = Account.get_native_currency(to)
     {:ok, exchanged, _} = Money.exchange(money, to_currency, rate)
-    
+
     with {:ok} <- valid_transfer(system, from, to),
       {:ok} <- Transaction.is_compatible_currencies(from, money),
       {:ok} <- Transaction.is_compatible_currencies(to, exchanged) do
@@ -157,18 +165,18 @@ defmodule FinancialSystem do
             true
           end
 
-        cond do
-          !has_funds ->
-            {:error, "No sufficient funds"}
+        if !has_funds do
+          {:error, "No sufficient funds"}
+        else
+          id = length(system.transactions) + 1
+          case Transaction.create(id, from, from_money, to, to_money) do
+            {:ok, transaction} ->
+              transactions = system.transactions ++ [transaction]
+              {:ok, %{system | transactions: transactions}, transaction}
 
-          true ->
-            case Transaction.create(length(system.transactions) + 1, from, from_money, to, to_money) do
-              {:ok, transaction} ->
-                {:ok, %{system | transactions: system.transactions ++ [transaction]}, transaction}
-
-              {:error, msg} ->
-                {:error, msg}
-            end
+            {:error, msg} ->
+              {:error, msg}
+          end
         end
     end
   end
@@ -191,7 +199,6 @@ defmodule FinancialSystem do
 
   def balance(system, account) do
     currency = Account.get_native_currency(account)
-    zero = Money.create(0, currency)
 
     credits =
       system
@@ -203,8 +210,7 @@ defmodule FinancialSystem do
         end
       end)
 
-    # TODO put reduce/sum in money module
-    {:ok, balance} = Enum.reduce(credits, zero, fn x, {:ok, acc} -> Money.sum(x, acc) end)
+    {:ok, balance} = Money.sum_parts(currency, credits)
     balance
   end
 
