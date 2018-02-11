@@ -19,6 +19,7 @@ defmodule FinancialSystemWithdrawalTest do
 
     %{
       system: system,
+      usd: usd,
       brl: brl,
       zero_brl: zero_brl,
       one_brl: one_brl,
@@ -105,5 +106,23 @@ defmodule FinancialSystemWithdrawalTest do
 
   test "should not withdraw zero money", %{system: system, one_brl_limit_account: one_brl_limit_account, zero_brl: zero_brl} do
     assert {:error, "Debit in a transaction should be negative"} = FinancialSystem.withdraw(system, one_brl_limit_account, zero_brl)
+  end
+
+  test "should withdraw 1 BRL in USD", %{
+    system: system,
+    usd: usd,
+    one_brl: one_brl,
+    one_brl_limit_account: one_brl_limit_account
+  } do
+    {:ok, zero_usd} = Money.create(0, usd)
+    {:ok, system, _} = FinancialSystem.add_account(system, "Bruce Wayne", zero_usd) #TODO remove this after creating control accounts on withdraw
+
+    {:ok, system, transaction} = FinancialSystem.withdraw(system, one_brl_limit_account, one_brl, usd, 0.33)
+
+    {:ok, exchanged} = Money.create(0.33, usd)
+    withdraw = Money.negative(one_brl)
+    
+    assert {1, {^one_brl_limit_account, ^withdraw}, {_, ^exchanged}} = transaction
+    
   end
 end

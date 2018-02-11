@@ -55,6 +55,12 @@ defmodule FinancialSystem do
     end
   end
 
+  def withdraw(system, account, money, currency, rate) do
+    {:ok, exchanged, _} = Money.exchange(money, currency, rate)
+    withdraw_account = get_withdraw_account(system, currency)
+    transfer(system, account, Money.negative(money), withdraw_account, exchanged, true)
+  end
+
   def transfer(system, from, to, money) when not is_list(to) do
     case valid_transfer(system, from, to) do
       {:ok} -> transfer(system, from, to, money, true)
