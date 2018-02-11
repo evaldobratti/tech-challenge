@@ -20,7 +20,7 @@ defmodule TransactionTest do
     acc1: acc1,
     acc2: acc2
   } do
-    transaction = Transaction.create(1, acc1, acc2, one_brl)
+    transaction = Transaction.create(1, acc1, Money.negative(one_brl), acc2, one_brl)
 
     {:ok, {id, {from, debit}, {to, credit}}} = transaction
 
@@ -36,7 +36,7 @@ defmodule TransactionTest do
     acc1: acc1,
     acc2: acc2
   } do
-    transaction = Transaction.create(1, acc1, acc2, Money.negative(one_brl))
+    transaction = Transaction.create(1, acc1, one_brl, acc2, Money.negative(one_brl))
 
     assert {:error, "Debit in a transaction should be negative"} = transaction
   end
@@ -47,7 +47,7 @@ defmodule TransactionTest do
     acc1: acc1,
     acc2: acc2
   } do
-    transaction = Transaction.create(1, acc1, acc2, Money.negative(zero_brl))
+    transaction = Transaction.create(1, acc1, zero_brl, acc2, Money.negative(zero_brl))
 
     assert {:error, "Debit in a transaction should be negative"} = transaction
   end

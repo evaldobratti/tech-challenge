@@ -138,7 +138,7 @@ defmodule FinancialSystem do
             {:error, "No sufficient funds"}
 
           true ->
-            case Transaction.create(length(system.transactions) + 1, from, to, money) do
+            case Transaction.create(length(system.transactions) + 1, from, Money.negative(money), to, money) do
               {:ok, transaction} ->
                 {:ok, %{system | transactions: system.transactions ++ [transaction]}, transaction}
 

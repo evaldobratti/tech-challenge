@@ -1,7 +1,4 @@
 defmodule Transaction do
-  def create(id, from, to, money) do
-    create(id, from, Money.negative(money), to, money)
-  end
 
   def create(id, from, from_money, to, to_money) do
     with {:ok} <- is_compatible_currencies(from, from_money),
