@@ -19,7 +19,7 @@ defmodule Transaction do
     end
   end
 
-  defp is_compatible_currencies(account, money) do
+  def is_compatible_currencies(account, money) do
     account_currency = Account.get_native_currency(account)
     money_currency = Money.get_currency(money)
 

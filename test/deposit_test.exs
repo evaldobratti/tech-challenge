@@ -104,9 +104,7 @@ defmodule FinancialSystemDepositTest do
     brl_account1: brl_account1,
     one_half_usd: one_half_usd
   } do
-    msg = "This account operate with BRL, you can't directly operate with USD in it"
-
-    assert {:error, ^msg} = FinancialSystem.deposit(system, brl_account1, one_half_usd)
+    assert {:error, "Account 4 does not operate with USD"} = FinancialSystem.deposit(system, brl_account1, one_half_usd)
   end
 
   test "should not deposit in unregistered account", %{system: system, zero_brl: zero_brl} do

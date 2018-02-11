@@ -94,9 +94,7 @@ defmodule FinancialSystemWithdrawalTest do
     no_limit_account: no_limit_account,
     one_usd: one_usd
   } do
-    msg = "This account operate with BRL, you can't directly operate with USD in it"
-
-    assert {:error, ^msg} = FinancialSystem.withdraw(system, no_limit_account, one_usd)
+    assert {:error, "Account 4 does not operate with USD"} = FinancialSystem.withdraw(system, no_limit_account, one_usd)
   end
 
   test "should not withdraw from unregistered account", %{system: system, zero_brl: zero_brl} do

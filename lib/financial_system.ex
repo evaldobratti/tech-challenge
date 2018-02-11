@@ -38,15 +38,21 @@ defmodule FinancialSystem do
   end
 
   def deposit(system, account, money) do
-    deposit_account = get_deposit_account(system, Account.get_native_currency(account))
-
-    transfer(system, deposit_account, account, money, false)
+    case Transaction.is_compatible_currencies(account, money) do
+      {:ok} -> 
+        deposit_account = get_deposit_account(system, Account.get_native_currency(account))
+        transfer(system, deposit_account, account, money, false)
+      {:error, msg} -> {:error, msg}
+    end
   end
 
   def withdraw(system, account, money) do
-    withdraw_account = get_withdraw_account(system, Account.get_native_currency(account))
-
-    transfer(system, account, withdraw_account, money, true)
+    case Transaction.is_compatible_currencies(account, money) do
+      {:ok} -> 
+        withdraw_account = get_withdraw_account(system, Account.get_native_currency(account))
+        transfer(system, account, withdraw_account, money, true)
+      {:error, msg} -> {:error, msg}
+    end
   end
 
   def transfer(system, from, to, money) when not is_list(to) do
@@ -97,23 +103,11 @@ defmodule FinancialSystem do
   end
 
   defp transfer(system, from, to, money, check_funds) do
-    money_currency = Money.get_currency(money)
-    from_currency = Account.get_native_currency(from)
-    to_currency = Account.get_native_currency(to)
+    transfer(system, from, Money.negative(money), to, money, check_funds)
+  end
 
+  defp transfer(system, from, from_money, to, to_money, check_funds) do
     cond do
-      money_currency != from_currency ->
-        {:error,
-         "This account operate with #{from_currency.code_alpha}, you can't directly operate with #{
-           money_currency.code_alpha
-         } in it"}
-
-      money_currency != to_currency ->
-        {:error,
-         "This account operate with #{to_currency.code_alpha}, you can't directly operate with #{
-           money_currency.code_alpha
-         } in it"}
-
       !is_registered_account(system, from) ->
         {:error, "Not registered account"}
 
@@ -127,7 +121,7 @@ defmodule FinancialSystem do
 
             funds = balance(system, from)
             {:ok, funds} = Money.sum(funds, account_limit)
-            {:ok, funds} = Money.sum(funds, Money.negative(money))
+            {:ok, funds} = Money.sum(funds, from_money)
             Money.is_positive(funds) or Money.is_zero(funds)
           else
             true
@@ -138,7 +132,7 @@ defmodule FinancialSystem do
             {:error, "No sufficient funds"}
 
           true ->
-            case Transaction.create(length(system.transactions) + 1, from, Money.negative(money), to, money) do
+            case Transaction.create(length(system.transactions) + 1, from, from_money, to, to_money) do
               {:ok, transaction} ->
                 {:ok, %{system | transactions: system.transactions ++ [transaction]}, transaction}
 
