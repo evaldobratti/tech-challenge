@@ -141,4 +141,39 @@ defmodule FinancialSystemTransferTest do
 
     assert {:error, "No sufficient funds"} == FinancialSystem.transfer(system, from, [to1, to2], one_one_cent_brl)
   end
+
+  test "should not transfer from one account currency to a different currency", %{system: system, usd: usd, zero_brl: zero_brl, one_brl: one_brl} do
+    {:ok, zero_usd} = Money.create(0, usd)
+
+    {:ok, system, from} = FinancialSystem.add_account(system, "Bruce Wayne", zero_brl)
+    {:ok, system, to} = FinancialSystem.add_account(system, "Clark Kent", zero_usd)
+
+    assert {:error, "Account 8 does not operate with BRL"} = FinancialSystem.transfer(system, from, to, one_brl)
+  end
+
+  test "should not transfer from one wrong currency to right currency", %{system: system, usd: usd, zero_brl: zero_brl} do
+    {:ok, one_usd} = Money.create(1, usd)
+
+    {:ok, system, from} = FinancialSystem.add_account(system, "Bruce Wayne", zero_brl)
+    {:ok, system, to} = FinancialSystem.add_account(system, "Clark Kent", one_usd)
+
+    assert {:error, "Account 4 does not operate with USD"} = FinancialSystem.transfer(system, from, to, one_usd)
+  end
+
+  test "should transfer from one currency to another one with rate exchanging", %{system: system, usd: usd, one_brl: one_brl} do
+    {:ok, one_usd} = Money.create(1, usd)
+
+    {:ok, system, from} = FinancialSystem.add_account(system, "Bruce Wayne", one_brl)
+    {:ok, system, to} = FinancialSystem.add_account(system, "Clark Kent", one_usd)
+
+    {:ok, system, transaction} = FinancialSystem.transfer_exchange(system, from, to, one_brl, 3.2222)
+
+    from_debit = Money.negative(one_brl)
+    {:ok, exchanged} = Money.create(3.22, usd)
+    assert {1, {^from, ^from_debit}, {^to, ^exchanged}} = transaction
+
+    assert FinancialSystem.balance(system, to) == exchanged
+    assert FinancialSystem.balance(system, from) == Money.negative(one_brl)
+
+  end
 end

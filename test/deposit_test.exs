@@ -118,15 +118,19 @@ defmodule FinancialSystemDepositTest do
     assert {:error, "Debit in a transaction should be negative"} = FinancialSystem.deposit(system, brl_account1, zero_brl)
   end
 
-  test "should deposit 1 BRL in a USD account",%{
+  test "should deposit 1 BRL in a USD account", %{
     system: system,
     brl: brl,
     brl_account1: brl_account1,
     one_half_usd: one_half_usd
   } do
-    {:ok, system, transaction} = FinancialSystem.deposit(system, brl_account1, one_half_usd, 3.2222)
+    {:ok, system, transaction} = FinancialSystem.deposit_exchange(system, brl_account1, one_half_usd, 3.2222)
 
-    {:ok, exchanged_money} = Money.create(4.83, brl)
-    assert FinancialSystem.balance(system, brl_account1) == exchanged_money
+    {:ok, exchanged} = Money.create(4.83, brl)
+    
+    from_debit = Money.negative(one_half_usd)
+
+    assert {1, {{7, "deposit USD", _, _}, ^from_debit}, {^brl_account1, ^exchanged}} = transaction
+    assert FinancialSystem.balance(system, brl_account1) == exchanged
   end
 end

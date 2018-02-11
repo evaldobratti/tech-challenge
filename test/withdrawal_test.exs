@@ -114,13 +114,13 @@ defmodule FinancialSystemWithdrawalTest do
     one_brl: one_brl,
     one_brl_limit_account: one_brl_limit_account
   } do
-    {:ok, zero_usd} = Money.create(0, usd)
-    {:ok, system, transaction} = FinancialSystem.withdraw(system, one_brl_limit_account, one_brl, usd, 0.33)
+    {:ok, system, transaction} = FinancialSystem.withdraw_exchange(system, one_brl_limit_account, one_brl, usd, 0.33)
 
     {:ok, exchanged} = Money.create(0.33, usd)
     withdraw = Money.negative(one_brl)
     
     assert {1, {^one_brl_limit_account, ^withdraw}, {_, ^exchanged}} = transaction
+    assert FinancialSystem.balance(system, one_brl_limit_account) == Money.negative(one_brl)
   end
   
 end

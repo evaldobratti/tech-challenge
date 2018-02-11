@@ -43,35 +43,24 @@ defmodule FinancialSystem do
 
   def deposit(system, account, money) do
     case Transaction.is_compatible_currencies(account, money) do
-      {:ok} -> deposit(system, account, money, 1)
+      {:ok} -> deposit_exchange(system, account, money, 1)
       {:error, msg} -> {:error, msg}
     end
-  end
-
-  def deposit(system, account, money, rate) do
-    account_currency = Account.get_native_currency(account)
-    money_currency = Money.get_currency(money)
-    {:ok, exchanged, _} = Money.exchange(money, account_currency, rate)
-    {system, deposit_account} = get_deposit_account(system, money_currency)
-    transfer(system, deposit_account, Money.negative(money), account, exchanged, false)
   end
 
   def withdraw(system, account, money) do
     case Transaction.is_compatible_currencies(account, money) do
-      {:ok} -> withdraw(system, account, money, Money.get_currency(money), 1)
+      {:ok} -> withdraw_exchange(system, account, money, Money.get_currency(money), 1)
       {:error, msg} -> {:error, msg}
     end
   end
 
-  def withdraw(system, account, money, currency, rate) do
-    {:ok, exchanged, _} = Money.exchange(money, currency, rate)
-    {system, withdraw_account} = get_withdraw_account(system, currency)
-    transfer(system, account, Money.negative(money), withdraw_account, exchanged, true)
-  end
-
   def transfer(system, from, to, money) when not is_list(to) do
-    case valid_transfer(system, from, to) do
-      {:ok} -> transfer(system, from, to, money, true)
+    with {:ok} <-valid_transfer(system, from, to),
+      {:ok} <- Transaction.is_compatible_currencies(from, money),
+      {:ok} <- Transaction.is_compatible_currencies(to, money) do
+      transfer(system, from, to, money, true)
+    else
       {:error, msg} -> {:error, msg}
     end
   end
@@ -82,6 +71,33 @@ defmodule FinancialSystem do
     case transfer_parts(system, from, list_to, parts) do
       {:ok, system, _} -> {:ok, system, Enum.take(system.transactions, -length(list_to))}
       {:error, message} -> {:error, message}
+    end
+  end
+
+  def deposit_exchange(system, account, money, rate) do
+    account_currency = Account.get_native_currency(account)
+    money_currency = Money.get_currency(money)
+    {:ok, exchanged, _} = Money.exchange(money, account_currency, rate)
+    {system, deposit_account} = get_deposit_account(system, money_currency)
+    transfer(system, deposit_account, Money.negative(money), account, exchanged, false)
+  end
+
+  def withdraw_exchange(system, account, money, currency, rate) do
+    {:ok, exchanged, _} = Money.exchange(money, currency, rate)
+    {system, withdraw_account} = get_withdraw_account(system, currency)
+    transfer(system, account, Money.negative(money), withdraw_account, exchanged, true)
+  end
+
+  def transfer_exchange(system, from, to, money, rate) do
+    to_currency = Account.get_native_currency(to)
+    {:ok, exchanged, _} = Money.exchange(money, to_currency, rate)
+    
+    with {:ok} <- valid_transfer(system, from, to),
+      {:ok} <- Transaction.is_compatible_currencies(from, money),
+      {:ok} <- Transaction.is_compatible_currencies(to, exchanged) do
+      transfer(system, from, Money.negative(money), to, exchanged, true)
+    else
+      {:error, msg} -> {:error, msg}
     end
   end
 
