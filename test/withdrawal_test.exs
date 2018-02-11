@@ -106,6 +106,6 @@ defmodule FinancialSystemWithdrawalTest do
   end
 
   test "should not withdraw zero money", %{system: system, one_brl_limit_account: one_brl_limit_account, zero_brl: zero_brl} do
-    assert {:error, "Money from a transaction must be positive"} = FinancialSystem.withdraw(system, one_brl_limit_account, zero_brl)
+    assert {:error, "Debit in a transaction should be negative"} = FinancialSystem.withdraw(system, one_brl_limit_account, zero_brl)
   end
 end

@@ -116,6 +116,6 @@ defmodule FinancialSystemDepositTest do
   end
 
   test "should not deposit zero money", %{system: system, brl_account1: brl_account1, zero_brl: zero_brl} do
-    assert {:error, "Money from a transaction must be positive"} = FinancialSystem.deposit(system, brl_account1, zero_brl)
+    assert {:error, "Debit in a transaction should be negative"} = FinancialSystem.deposit(system, brl_account1, zero_brl)
   end
 end
