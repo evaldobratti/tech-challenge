@@ -1,15 +1,32 @@
 defmodule FinancialSystem do
   @moduledoc """
-  Documentation for FinancialSystem.
+  Define toda estrutura para o sistema financeiro, como contas de usuários, contas de controle e histórico de 
+  todas as transações feitas no sistema.
   """
 
   alias Transaction
   import AccountsManagement
 
+  @doc """
+  Cria um novo sistema financeiro, apto a receber contas e transações.
+  """
   def create(name) do
     %{name: name, accounts: [], transactions: [], private_accounts: []}
   end
 
+  @doc """
+  Cria contas de controle, que são
+  bank <MOEDA> Conta do próprio banco para determinada moeda, onde taxas sobre transações poderão ser recebidas
+  deposit <MOEDA> Conta para servir de contra partida de depósitos de determinada moeda
+  withdrawal <MOEDA> Conta que serve de contra partida de saques de determinada moeda
+
+  essas contas fazem parte de contas privadas do sistema e não podem ser utilizadas para transações públicas
+
+  ## Parameters
+    - system: estado do sistema financeiro
+    - currency: moeda para contas de controle
+  
+  """
   def create_currency_control_accounts(system, currency) do
     %{code_alpha: code_alpha} = currency
 
@@ -33,6 +50,15 @@ defmodule FinancialSystem do
     end
   end
 
+  @doc """
+  Adiciona nova conta ao sistema. Se a conta for referente a uma nova moeda, não existente no sistema, as contas de controle
+  dessa moeda serão criadas automaticamente.
+
+  ## Parameters
+    - system: estado do sistema financeiro
+    - account_name: nome da nova conta
+
+  """
   def add_account(system, account_name, limit) do
     {_, _, currency} = limit
 
@@ -44,6 +70,14 @@ defmodule FinancialSystem do
     end
   end
 
+  @doc """
+  Deposita determinada quantia de dinheiro na conta informada.
+  
+  ## Parameters
+    - system: estado do sistema financeiro
+    - account: conta que receberá o dinheiro
+    - money: dinheiro que será creditado na conta
+  """
   def deposit(system, account, money) do
     case Transaction.is_compatible_currencies(account, money) do
       {:ok} -> deposit_exchange(system, account, money, 1)
@@ -51,6 +85,15 @@ defmodule FinancialSystem do
     end
   end
 
+  @doc """
+  Saca determinada quantia de dinheiro da conta informada.
+  A conta de origem deverá possuír saldo suficiente para operação. O limite da conta pode ser utilizado.
+  
+  ## Parameters
+    - system: estado do sistema financeiro
+    - account: conta que o saque será realizado
+    - money: dinheiro que será debitado na conta
+  """
   def withdraw(system, account, money) do
     case Transaction.is_compatible_currencies(account, money) do
       {:ok} ->
@@ -59,6 +102,18 @@ defmodule FinancialSystem do
     end
   end
 
+  @doc """
+  Realiza transferências de uma conta para outra no sistema. 
+  As contas não podem ser privadas do banco.
+  Nesta função, a transação é 1-1 e ambas as contas deverão ter a mesma moeda de operação.
+  A conta de origem deverá possuír saldo suficiente para operação. O limite da conta pode ser utilizado.
+  
+  ## Parameters
+    - system: estado do sistema financeiro
+    - from: conta que será debitada
+    - to: conta que será creditada
+    - money: dinheiro que será transferido
+  """
   def transfer(system, from, to, money) when not is_list(to) do
     with {:ok} <- valid_transfer(system, from, to),
       {:ok} <- Transaction.is_compatible_currencies(from, money),
@@ -69,6 +124,19 @@ defmodule FinancialSystem do
     end
   end
 
+  @doc """
+  Realiza transferência de uma conta para outras no sistema.
+  As contas não podem ser privadas do banco.
+  Nesta função, a transação é 1-N e todas as contas deverão ter a mesma moeda de operação.
+  A quantia de dinheiro informada será dividida igualmente entre todas as contas informadas.
+  A conta de origem deverá possuír saldo suficiente para operação. O limite da conta pode ser utilizado.
+
+  ## Parameters
+    - system: estado do sistema financeiro
+    - from: conta que será debitada
+    - list_to: lista de contas que serão creditadas com uma parte do dinheiro
+    - money: dinheiro que será transferido
+  """
   def transfer(system, from, list_to, money) when is_list(list_to) do
     n = length(list_to)
     parts = Money.divide(money, n)
@@ -79,6 +147,16 @@ defmodule FinancialSystem do
     end
   end
 
+  @doc """
+  Deposita dinheiro na conta realizando câmbio. 
+  O dinheiro será convertido para a moeda nativa da conta utilizando a taxa informada.
+
+  ## Parameters
+    - system: estado do sistema financeiro
+    - account: conta que receberá o dinheiro
+    - money: quantia de dinheiro que será depositada e que sofrerá câmbio
+    - rate: taxa de conversão que será utilizada para converter para a moeda nativa da conta
+  """
   def deposit_exchange(system, account, money, rate) do
     account_currency = Account.get_native_currency(account)
     money_currency = Money.get_currency(money)
@@ -90,6 +168,17 @@ defmodule FinancialSystem do
     transfer(system, deposit_account, debit, account, exchanged, false)
   end
 
+  @doc """
+  Saca determinada quantia de dinheiro realizando o cambio com a taxa informada.
+  A conta deverá possuír saldo suficiente para operação. O limite da conta pode ser utilizado.
+
+  # Parameters
+    - system: estado do sistema financeiro
+    - account: conta que receberá o saque
+    - money: quantia de dinheiro que será sacada e que sofrerá câmbio
+    - currency: moeda de saída do saque
+    - rate: taxa para realização do câmbio
+  """
   def withdraw_exchange(system, account, money, currency, rate) do
     debit = Money.negative(money)
 
@@ -102,6 +191,20 @@ defmodule FinancialSystem do
     end
   end
 
+  @doc """
+  Realiza transferência entre contas com diferentes moedas.
+  A conta de origem deverá possuír saldo suficiente para operação. O limite da conta pode ser utilizado.
+  O dinheiro deverá ter a mesma moeda da conta de origem.
+  O dinheiro para a conta de destino sofrerá câmbio utilizando a taxa informada.
+
+  #Parameters
+    - system: estado do sistema financeiro
+    - from: conta que sofrerá debito
+    - to: conta que sofrerá crédito em dinheiro após o câmbio
+    - money: quantia de dinheiro que será debitada de from e sofrerá cambio
+    - rate: taxa para realização de câmbio
+
+  """
   def transfer_exchange(system, from, to, money, rate) do
     to_currency = Account.get_native_currency(to)
     {:ok, exchanged, _} = Money.exchange(money, to_currency, rate)
@@ -113,6 +216,47 @@ defmodule FinancialSystem do
     else
       {:error, msg} -> {:error, msg}
     end
+  end
+
+  @doc """
+  Calcula o saldo atual da conta. Não leva em conta o limite da conta.
+
+  #Parameters
+    - system: estado do sistema financeiro
+    - account: conta para cálculo de saldo
+  """
+  def balance(system, account) do
+    currency = Account.get_native_currency(account)
+
+    credits =
+      system
+      |> transactions_envolving(account)
+      |> Enum.map(fn t ->
+        case t do
+          {_, {^account, debit}, _} -> debit
+          {_, _, {^account, credit}} -> credit
+        end
+      end)
+
+    {:ok, balance} = Money.sum_parts(currency, credits)
+    balance
+  end
+
+  @doc """
+  Calcula todas as transações que uma conta participou, seja em débito ou crédito.
+
+  #Parameters
+    - system: estado do sistema financeiro
+    - account: conta para filtrar as transações
+  """
+  def transactions_envolving(system, account) do
+    Enum.filter(system.transactions, fn t ->
+      case t do
+        {_, {^account, _}, {_, _}} -> true
+        {_, {_, _}, {^account, _}} -> true
+        _ -> false
+      end
+    end)
   end
 
   defp transfer_parts(system, from, [to | others_to], [part | others_parts]) when length(others_to) >= 1 do
@@ -135,7 +279,7 @@ defmodule FinancialSystem do
     end
   end
 
-  def valid_transfer(system, from, to) do
+  defp valid_transfer(system, from, to) do
     with {:ok} <- is_private_account(system, from),
       {:ok} <- is_private_account(system, to) do
         if from == to do
@@ -213,34 +357,8 @@ defmodule FinancialSystem do
     {system, withdraw}
   end
 
-  def is_registered_account(system, account) do
+  defp is_registered_account(system, account) do
     Enum.member?(system.accounts, account)
   end
 
-  def balance(system, account) do
-    currency = Account.get_native_currency(account)
-
-    credits =
-      system
-      |> transactions_envolving(account)
-      |> Enum.map(fn t ->
-        case t do
-          {_, {^account, debit}, _} -> debit
-          {_, _, {^account, credit}} -> credit
-        end
-      end)
-
-    {:ok, balance} = Money.sum_parts(currency, credits)
-    balance
-  end
-
-  def transactions_envolving(system, account) do
-    Enum.filter(system.transactions, fn t ->
-      case t do
-        {_, {^account, _}, {_, _}} -> true
-        {_, {_, _}, {^account, _}} -> true
-        _ -> false
-      end
-    end)
-  end
 end

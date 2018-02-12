@@ -1,12 +1,52 @@
 defmodule Money do
+  @moduledoc """
+  Representação do dinheiro no sistema.
+  O dinheiro é representado pela tupla
+  {parte_inteira, parte_exponencial, moeda}
+
+  - Parte inteira representa a quantia pré virgula
+  - Parte exponencial representa a quantia pós virgula
+  - Moeda do dinheiro
+
+  Para qualquer operação monetária, o dinheiro e convertido para inteiro para então retornar a representação de dinheiro novamente.
+  """
   alias Currency
 
+  @doc """
+  Determina quantia de casas decimais que poderá ser utilizada para recuperar valores decimais pós cambio.
+  Exemplo:
+  $ 1.00 para R$ utlizando taxa de 3.33333
+
+  A quantia significativa dessa conversão é de R$ 3.33, ficando R$ 0.00333 centavos de sobras.
+  A quantia de casas decimais determinada por esse campo será utilizado para salvar essas sobras. 
+  No caso acima, teríamos 33300
+  Após 4 conversões de R$ 1.00 para $ utilizando a taxa de 3.33333 temos que a soma dessas sobras
+  é suficiente para criar uma quantia significativa de R$
+  33300 * 4 = 133200
+
+  Podemos recuperar R$ 0.01 após as 4 conversões acimas.
+  Esta funcionalidade não está incorporada no sistema financiero.
+  """
   @significant_floating_point 5
 
+  @doc """
+  Cria dinheiro utilizando a quantia e moeda informada.
+
+  #Parameters
+    - amount: quantia da moeda
+    - currency: moeda
+  """
   def create(amount, currency) when is_integer(amount) do
     create(amount / 1, currency)
   end
 
+  @doc """
+  Cria dinheiro utilizando a quantia e moeda informada.
+
+  #Parameters
+    - amount: quantia da moeda
+    - currency: moeda
+  """
   def create(amount, currency) when is_float(amount) do
     if currency == nil do
         {:error, "Currency is not present"}
@@ -17,20 +57,9 @@ defmodule Money do
     end
   end
 
-  defp raw_integer(raw_integer, currency) when is_integer(raw_integer) do
-    factor = Currency.factor(currency)
-
-    integer = div(raw_integer, factor)
-    exponent = rem(raw_integer, factor)
-
-    {integer, exponent, currency}
-  end
-
-  defp to_raw_integer({integer, exponent, currency}) do
-    factor = Currency.factor(currency)
-    integer * factor + exponent
-  end
-
+  @doc """
+  Soma de dinheiro. Ambos parametros devem ter a mesma moeda.
+  """
   def sum({_, _, currency1} = money1, {_, _, currency2} = money2) do
     if currency1 != currency2 do
       {:error, "You can only sum money from the same currency"}
@@ -44,10 +73,18 @@ defmodule Money do
     end
   end
 
+  @doc """
+  Inverte o sinal do dinheiro informado.
+  A grandeza do dinheiro continuará a mesma.
+  """
   def negative({integer, exponent, currency}) do
     {-integer, -exponent, currency}
   end
 
+  @doc """
+  Representação em string do dinheiro. A quantia de casas exponenciais da moeda é utilizada.
+  Se a moeda conter sua representação, ela será utilizada.
+  """
   def to_string({integer, exponent, currency}) do
     %{exponent: currency_exponent} = currency
     base = "#{currency.repr} #{integer}"
@@ -62,6 +99,19 @@ defmodule Money do
     end
   end
 
+  @doc """
+  Realiza cambio para a moeda utilizando a taxa informada.
+  Cambios de-para mesma moeda devem ter taxa 1.
+
+  A multiplicação será fluente utilizandoa representação inteira da moeda.
+  A parte flutuante da multiplicação poderá ser utilizada para recuperação de centavos de conversão, conforme detalhado em 
+  @significant_floating_point.
+
+  # Parameters
+    - money_from: dinheiro a sofrer cambio
+    - currency_to: moeda de saída
+    - rate: taxa de câmbio
+  """
   def exchange({_, _, currency_from} = money_from, currency_to, rate) do
     if currency_from == currency_to do
        if rate != 1 do
@@ -85,6 +135,26 @@ defmodule Money do
     end
   end
 
+  @doc """
+  Realiza a divisão de dinheiro.
+  Retorna uma lista com as partes da divisão.
+  É garantido que a soma dessas partes será igual ao valor informado no parâmetro.
+
+  Exemplo: 
+  R$ 2.33 / 5 não é exata (diferente de R$ 1.00 / 2 que resulta em 2 partes iguais de R$ 0.50).
+  2.33 / 5 = 0.466 que após arredondamento fica R$ 0.47.
+  Porém, R$ 0.47 * 5 = 2.35, que é diferente o parametro informado R$ 2.33.
+
+  Esta função utilizará o valor truncado da divisão e distribuirá o valor restante da divisão nas primeiras partes.
+  Logo, o resultado para a divisão de R$ 2.33 / 5 será 3 partes de R$ 0.47 e 2 partes de R$ 0.46.
+
+  # Parameters
+    - money: dinheiro a ser divido
+    - divisor: divisor do dinheiro
+
+  # Returns
+    - Lista de dinheiro que representam a divisão
+  """
   def divide({_, _, currency} = money, divisor) when is_integer(divisor) and divisor > 1 do
     amount = to_raw_integer(money)
 
@@ -97,6 +167,30 @@ defmodule Money do
     distributed_parts = distribute(difference, parts)
 
     distributed_parts
+  end
+
+  @doc """
+  Transforma um inteiro puro em dinheiro utilizando a parte exponencial da moeda.
+
+  Exemplo: 133 com moeda R$ resulta em R$ 1.33
+  """
+  defp raw_integer(raw_integer, currency) when is_integer(raw_integer) do
+    factor = Currency.factor(currency)
+
+    integer = div(raw_integer, factor)
+    exponent = rem(raw_integer, factor)
+
+    {integer, exponent, currency}
+  end
+
+  @doc """
+  Transforma um dinheiro em um inteiro puro
+
+  Exemplo: R$ 1.33 resulta em 133
+  """
+  defp to_raw_integer({integer, exponent, currency}) do
+    factor = Currency.factor(currency)
+    integer * factor + exponent
   end
 
   defp distribute(0, list) do

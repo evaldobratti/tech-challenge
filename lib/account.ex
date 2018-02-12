@@ -1,6 +1,17 @@
 defmodule Account do
+  @moduledoc """
+  Representa uma conta.
+  """
+
   @doc """
-  {owner_name, limit, native_currency}
+  Cria uma nova conta.
+  A conta poderá ter um limite, que possibilitará a conta ficar negativa até esse valor.
+  A conta assumirá como moeda de transação a moeda do dinheiro informado como limite.
+
+  ## Parameters
+    - id: identificação da conta
+    - owner_name: nome do usuário da conta
+    - limit: limite da conta. A moeda desse dinheiro será usado como moeda nativa da conta.
   """
   def create(id, owner_name, {_, _, currency} = limit) do
     cond do
