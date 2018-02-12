@@ -1,15 +1,21 @@
 # Tech Challenge [![Build Status](https://travis-ci.org/evaldobratti/tech-challenge.svg?branch=master)](https://travis-ci.org/evaldobratti/tech-challenge)[![codecov](https://codecov.io/gh/evaldobratti/tech-challenge/branch/master/graph/badge.svg)](https://codecov.io/gh/evaldobratti/tech-challenge)
 
 Esta implementação de sistema financeiro é baseado em transações de partida e contra partida, sendo a parte da esquerda sempre negativa (débito) e a parte da direita sempre positiva (crédito). Todas as operações feitas no sistema são historizadas, depósito, saques e transferências.
+
 Para isso, o sistema financeiro conta algumas contas "privadas", que são, uma conta do próprio banco, uma conta de depósito e uma conta de saque.
+
 Por exemplo:
+
 Depósito de R$ 1,00 na conta X
+
 (R$ -1,00 | conta depósito)(R$ 1 | conta X}
 
 Saque de R$ 1,00 na conta X
+
 (R$ -1,00 | conta X)(R$ 1 | conta saque}
 
 Transferencia de R$ 1,00 da conta X para conta Y
+
 (R$ -1,00 | conta X)(R$ 1 | conta Y}
 
 Dado que qualquer operação feita no sistema respeita essa estrutura, é possível determinar qual o saldo de cada conta, quanto de dinheiro entrou no sistema através de depósitos, quanto saiu através de saques, calcula um extrato da conta etc.
