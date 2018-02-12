@@ -9,10 +9,8 @@ defmodule Money do
   - Moeda do dinheiro
 
   Para qualquer operação monetária, o dinheiro e convertido para inteiro para então retornar a representação de dinheiro novamente.
-  """
-  alias Currency
-
-  @doc """
+  
+  @significant_floating_point
   Determina quantia de casas decimais que poderá ser utilizada para recuperar valores decimais pós cambio.
   Exemplo:
   $ 1.00 para R$ utlizando taxa de 3.33333
@@ -27,6 +25,8 @@ defmodule Money do
   Podemos recuperar R$ 0.01 após as 4 conversões acimas.
   Esta funcionalidade não está incorporada no sistema financiero.
   """
+  alias Currency
+
   @significant_floating_point 5
 
   @doc """
@@ -169,11 +169,6 @@ defmodule Money do
     distributed_parts
   end
 
-  @doc """
-  Transforma um inteiro puro em dinheiro utilizando a parte exponencial da moeda.
-
-  Exemplo: 133 com moeda R$ resulta em R$ 1.33
-  """
   defp raw_integer(raw_integer, currency) when is_integer(raw_integer) do
     factor = Currency.factor(currency)
 
@@ -183,11 +178,6 @@ defmodule Money do
     {integer, exponent, currency}
   end
 
-  @doc """
-  Transforma um dinheiro em um inteiro puro
-
-  Exemplo: R$ 1.33 resulta em 133
-  """
   defp to_raw_integer({integer, exponent, currency}) do
     factor = Currency.factor(currency)
     integer * factor + exponent
