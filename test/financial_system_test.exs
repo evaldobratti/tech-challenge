@@ -70,7 +70,8 @@ defmodule FinancialSystemTest do
     usd: usd,
     zero_usd: zero_usd
   } do
-    system = with system <- FinancialSystem.create("system"),
+    system =
+      with system <- FinancialSystem.create("system"),
            {:ok, system, _} <- FinancialSystem.add_account(system, "Bruce Wayne", zero_brl),
            {:ok, system, _} <- FinancialSystem.add_account(system, "Clark Kent", zero_usd) do
         system
@@ -89,33 +90,91 @@ defmodule FinancialSystemTest do
     assert {8, "Clark Kent", ^zero_usd, ^usd} = Enum.at(accounts, 7)
   end
 
-  @tag :skip
-  test "User should be able to transfer money to another account" do
-    assert false
+  test "User should be able to transfer money to another account", %{usd: usd, zero_usd: zero_usd} do
+    system = FinancialSystem.create("system")
+
+    {:ok, limit} = Money.create(10, usd)
+    {:ok, system, from} = FinancialSystem.add_account(system, "Bruce Wayne", limit)
+    {:ok, system, to} = FinancialSystem.add_account(system, "Clark Kent", zero_usd)
+
+    {:ok, transfer_money} = Money.create(3.44, usd)
+    {:ok, system, _ } = FinancialSystem.transfer(system, from, to, transfer_money)
+
+    assert {:ok, FinancialSystem.balance(system, from)} == Money.create(-3.44, usd)
+    assert {:ok, FinancialSystem.balance(system, to)} == Money.create(3.44, usd)
   end
 
-  @tag :skip
-  test "User cannot transfer if not enough money available on the account" do
-    assert false
+  test "User cannot transfer if not enough money available on the account", %{usd: usd, zero_usd: zero_usd} do
+    system = FinancialSystem.create("system")
+
+    {:ok, ten_usd} = Money.create(10, usd)
+    {:ok, system, from} = FinancialSystem.add_account(system, "Bruce Wayne", zero_usd)
+    {:ok, system, to} = FinancialSystem.add_account(system, "Clark Kent", zero_usd)
+
+    assert {:error, "No sufficient funds"} = FinancialSystem.transfer(system, from, to, ten_usd)
   end
 
-  @tag :skip
-  test "A transfer should be cancelled if an error occurs" do
-    assert false
+  test "A transfer should be cancelled if an error occurs", %{usd: usd, zero_usd: zero_usd} do
+    system = FinancialSystem.create("system")
+
+    {:ok, ten_usd} = Money.create(10, usd)
+    {:ok, system, from} = FinancialSystem.add_account(system, "Bruce Wayne", zero_usd)
+
+    assert {:error, "Transfer should have different accounts"} = FinancialSystem.transfer(system, from, from, ten_usd)
   end
 
-  @tag :skip
-  test "A transfer can be splitted between 2 or more accounts" do
-    assert false
+  test "A transfer can be splitted between 2 or more accounts", %{usd: usd, zero_usd: zero_usd} do
+    system = FinancialSystem.create("system")
+
+    {:ok, ten_usd} = Money.create(10, usd)
+    {:ok, system, from} = FinancialSystem.add_account(system, "Bruce Wayne", ten_usd)
+    {:ok, system, to1} = FinancialSystem.add_account(system, "Clark Kent", zero_usd)
+    {:ok, system, to2} = FinancialSystem.add_account(system, "Frank Castle", zero_usd)
+
+    {:ok, to_transfer} = Money.create(2.33, usd)
+
+    {:ok, system, _ } = FinancialSystem.transfer(system, from, [to1, to2], to_transfer)
+
+    assert {:ok, FinancialSystem.balance(system, from)} == Money.create(-2.33, usd)
+    assert {:ok, FinancialSystem.balance(system, to1)} == Money.create(1.17, usd)
+    assert {:ok, FinancialSystem.balance(system, to2)} == Money.create(1.16, usd)
   end
 
-  @tag :skip
-  test "User should be able to exchange money between different currencies" do
-    assert false
+  test "User should be able to exchange money between different currencies", %{brl: brl, usd: usd} do
+    system = FinancialSystem.create("system")
+
+    {:ok, ten_usd} = Money.create(10, usd)
+    {:ok, system, from} = FinancialSystem.add_account(system, "Bruce Wayne", ten_usd)
+
+    {:ok, money} = Money.create(5, usd)
+
+    {:ok, system, transaction} = FinancialSystem.withdraw_exchange(system, from, money, brl, 3.42)
+
+    negative_money = Money.negative(money)
+    {_, {^from, ^negative_money}, {_, withdraw}} = transaction
+
+    assert {:ok, FinancialSystem.balance(system, from)} == Money.create(-5, usd)
+    assert {:ok, ^withdraw} = Money.create(17.10, brl)
   end
 
-  @tag :skip
-  test "Currencies should be in compliance with ISO 4217" do
-    assert false
+  test "Currencies should be in compliance with ISO 4217", %{usd: usd, brl: brl} do
+    assert %Currency{code_alpha: "USD", code_number: "840", exponent: 2, repr: "$"} == usd
+    assert %Currency{code_alpha: "BRL", code_number: "986", exponent: 2, repr: "R$"} == brl
+
+    {:ok, yen} = Currency.create("JPY", "392", 0, "￥")
+
+    {:ok, money_usd} = Money.create(1.22, usd)
+    {:ok, money_brl} = Money.create(1.22, brl)
+    {:ok, money_yen} = Money.create(1.22333, yen)
+
+    assert {1, 22, ^usd} = money_usd
+    assert {1, 22, ^brl} = money_brl
+    assert {1, 0, ^yen} = money_yen
+
+    assert Money.to_string(money_usd) == "$ 1.22"
+    assert Money.to_string(money_brl) == "R$ 1.22"
+    assert Money.to_string(money_yen) == "￥ 1"
   end
 end
+
+

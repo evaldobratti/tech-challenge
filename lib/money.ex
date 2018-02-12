@@ -50,12 +50,16 @@ defmodule Money do
 
   def to_string({integer, exponent, currency}) do
     %{exponent: currency_exponent} = currency
-    exponent_part = exponent
-    |> abs()
-    |> Integer.to_string()
-    |> String.pad_leading(currency_exponent, "0")
-
-    "#{currency.repr} #{integer}.#{exponent_part}"
+    base = "#{currency.repr} #{integer}"
+    if currency_exponent > 0 do
+      exponent_part = exponent
+      |> abs()
+      |> Integer.to_string()
+      |> String.pad_leading(currency_exponent, "0")
+      base <> ".#{exponent_part}"
+    else
+      base
+    end
   end
 
   def exchange({_, _, currency_from} = money_from, currency_to, rate) do

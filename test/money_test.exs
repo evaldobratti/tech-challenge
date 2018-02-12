@@ -284,4 +284,10 @@ defmodule MoneyTest do
     {:ok, cent} = Money.create(0.01, usd)
     assert {:ok, ^cent, 0} = Money.can_recover(100_000, usd)
   end
+
+  test "should format yen" do
+    {:ok, yen} = Currency.create("JPY", "392", 0, "￥")
+    {:ok, money} = Money.create(300_000, yen)
+    assert Money.to_string(money) == "￥ 300000"
+  end
 end

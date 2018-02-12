@@ -138,7 +138,11 @@ defmodule FinancialSystem do
   def valid_transfer(system, from, to) do
     with {:ok} <- is_private_account(system, from),
       {:ok} <- is_private_account(system, to) do
-      {:ok}
+        if from == to do
+          {:error, "Transfer should have different accounts"}
+        else
+          {:ok}
+        end
     else
       {:error, msg} -> {:error, msg}
     end
