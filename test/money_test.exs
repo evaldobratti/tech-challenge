@@ -140,9 +140,9 @@ defmodule MoneyTest do
   end
 
   test "should format money with currency on to_string", context do
-    {:ok, one_half_brl} = Money.create(-1.50, context.brl)
+    {:ok, one_half_brl} = Money.create(-1.05, context.brl)
 
-    assert Money.to_string(one_half_brl) == "R$ -1.50"
+    assert Money.to_string(one_half_brl) == "R$ -1.05"
   end
 
   test "should not exchange same currency if rate is not 1", context do
@@ -278,5 +278,10 @@ defmodule MoneyTest do
     {:ok, zero} = Money.create(0, usd)
 
     assert usd == Money.get_currency(zero)
+  end
+
+  test "can recover a unit of a currency from various exchanges", %{usd: usd} do
+    {:ok, cent} = Money.create(0.01, usd)
+    assert {:ok, ^cent, 0} = Money.can_recover(100_000, usd)
   end
 end

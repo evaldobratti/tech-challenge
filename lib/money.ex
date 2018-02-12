@@ -49,7 +49,13 @@ defmodule Money do
   end
 
   def to_string({integer, exponent, currency}) do
-    "#{currency.repr} #{integer}.#{abs(exponent)}"
+    %{exponent: currency_exponent} = currency
+    exponent_part = exponent
+    |> abs()
+    |> Integer.to_string()
+    |> String.pad_leading(currency_exponent, "0")
+
+    "#{currency.repr} #{integer}.#{exponent_part}"
   end
 
   def exchange({_, _, currency_from} = money_from, currency_to, rate) do
@@ -118,5 +124,14 @@ defmodule Money do
   def sum_parts(currency, moneys) do
     zero = Money.create(0, currency)
     Enum.reduce(moneys, zero, fn x, {:ok, acc} -> Money.sum(x, acc) end)
+  end
+
+  def can_recover(amount, currency) do
+    factor = trunc(:math.pow(10, @significant_floating_point))
+    if amount >= factor do
+      {:ok, raw_integer(1, currency), amount - factor}
+    else
+      {:no}
+    end
   end
 end

@@ -21,7 +21,9 @@ defmodule FinancialSystem do
         currency_accounts = Enum.take(accounts, -3)
         private_accounts = system.private_accounts ++ currency_accounts
 
-        %{system | :accounts => accounts, :private_accounts => private_accounts}
+        %{system |
+          :accounts => accounts,
+          :private_accounts => private_accounts}
         |> Map.put(currency, List.to_tuple(currency_accounts))
       else
         {:error, "Already registered account"} -> system
@@ -91,9 +93,13 @@ defmodule FinancialSystem do
   def withdraw_exchange(system, account, money, currency, rate) do
     debit = Money.negative(money)
 
-    {:ok, exchanged, _} = Money.exchange(money, currency, rate)
-    {system, withdraw_account} = get_withdraw_account(system, currency)
-    transfer(system, account, debit, withdraw_account, exchanged, true)
+    case is_private_account(system, account) do
+      {:ok} ->
+        {:ok, exchanged, _} = Money.exchange(money, currency, rate)
+        {system, withdraw_account} = get_withdraw_account(system, currency)
+        transfer(system, account, debit, withdraw_account, exchanged, true)
+      {:error, msg} -> {:error, msg}
+    end
   end
 
   def transfer_exchange(system, from, to, money, rate) do
@@ -109,18 +115,12 @@ defmodule FinancialSystem do
     end
   end
 
-  defp transfer_parts(system, from, [to | others_to], [part | others_parts]) do
+  defp transfer_parts(system, from, [to | others_to], [part | others_parts]) when length(others_to) >= 1 do
     case valid_transfer(system, from, to) do
       {:ok} ->
         case transfer(system, from, to, part, true) do
-          {:ok, system, transaction} ->
-            if length(others_to) > 0 do
-              transfer_parts(system, from, others_to, others_parts)
-            else
-              {:ok, system, transaction}
-            end
-          {:error, msg} ->
-            {:error, msg}
+          {:ok, system, _} -> transfer_parts(system, from, others_to, others_parts)
+          {:error, msg} -> {:error, msg}
         end
 
       {:error, msg} ->
@@ -128,16 +128,28 @@ defmodule FinancialSystem do
     end
   end
 
+  defp transfer_parts(system, from, [to], [part]) do
+    case valid_transfer(system, from, to) do
+      {:ok} -> transfer(system, from, to, part, true)
+      {:error, msg} -> {:error, msg}
+    end
+  end
+
   def valid_transfer(system, from, to) do
-    cond do
-      is_private_account(system, from) -> {:error, "You cannot transfer using private accounts"}
-      is_private_account(system, to) -> {:error, "You cannot transfer using private accounts"}
-      true -> {:ok}
+    with {:ok} <- is_private_account(system, from),
+      {:ok} <- is_private_account(system, to) do
+      {:ok}
+    else
+      {:error, msg} -> {:error, msg}
     end
   end
 
   defp is_private_account(system, account) do
-    Enum.member?(system.private_accounts, account)
+    if Enum.member?(system.private_accounts, account) do
+      {:error, "You cannot use private accounts"}
+    else
+      {:ok}
+    end
   end
 
   defp transfer(system, from, to, money, check_funds) do
@@ -155,12 +167,7 @@ defmodule FinancialSystem do
       true ->
         has_funds =
           if check_funds do
-            account_limit = Account.get_limit(from)
-
-            funds = balance(system, from)
-            {:ok, funds} = Money.sum(funds, account_limit)
-            {:ok, funds} = Money.sum(funds, from_money)
-            Money.is_positive(funds) or Money.is_zero(funds)
+            has_enough_funds(system, from, from_money)
           else
             true
           end
@@ -179,6 +186,15 @@ defmodule FinancialSystem do
           end
         end
     end
+  end
+
+  defp has_enough_funds(system, account, money) do
+    account_limit = Account.get_limit(account)
+
+    funds = balance(system, account)
+    {:ok, funds} = Money.sum(funds, account_limit)
+    {:ok, funds} = Money.sum(funds, money)
+    Money.is_positive(funds) or Money.is_zero(funds)
   end
 
   defp get_deposit_account(system, currency) do

@@ -108,7 +108,7 @@ defmodule FinancialSystemTransferTest do
 
     assert elem(deposit_hacking, 1) == "deposit BRL"
 
-    assert {:error, "You cannot transfer using private accounts"} = FinancialSystem.transfer(system, deposit_hacking, to, one_brl)
+    assert {:error, "You cannot use private accounts"} = FinancialSystem.transfer(system, deposit_hacking, to, one_brl)
   end
 
   test "should not transfer to private accounts", %{
@@ -121,7 +121,7 @@ defmodule FinancialSystemTransferTest do
 
     assert elem(withdraw_hacking, 1) == "withdrawal BRL"
 
-    assert {:error, "You cannot transfer using private accounts"} = FinancialSystem.transfer(system, from, withdraw_hacking, one_brl)
+    assert {:error, "You cannot use private accounts"} = FinancialSystem.transfer(system, from, withdraw_hacking, one_brl)
   end
 
 

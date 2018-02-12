@@ -118,9 +118,15 @@ defmodule FinancialSystemWithdrawalTest do
 
     {:ok, exchanged} = Money.create(0.33, usd)
     withdraw = Money.negative(one_brl)
-    
+
     assert {1, {^one_brl_limit_account, ^withdraw}, {_, ^exchanged}} = transaction
     assert FinancialSystem.balance(system, one_brl_limit_account) == Money.negative(one_brl)
   end
-  
+
+  test "should not withdraw from private account", %{system: system, one_brl: one_brl} do
+    private_account = Enum.at(system.accounts, 0)
+
+    assert {:error, "You cannot use private accounts"} = FinancialSystem.withdraw(system, private_account, one_brl)
+  end
+
 end
