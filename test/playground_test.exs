@@ -55,9 +55,9 @@ defmodule PlaygroundTest do
     # Cambio
     ### Depósito
     assert FinancialSystem.balance(system, acc_bruce) == negative_five_usd
-    
+
     {:ok, system, _} = FinancialSystem.deposit_exchange(system, acc_bruce, ten_brl, 0.5)
-    
+
     assert FinancialSystem.balance(system, acc_bruce) == zero_usd
 
     ### Saque

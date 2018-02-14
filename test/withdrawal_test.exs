@@ -89,8 +89,7 @@ defmodule FinancialSystemWithdrawalTest do
     assert {:error, "No sufficient funds"} = FinancialSystem.withdraw(system, one_brl_limit_account, one_half_brl)
   end
 
-  
-  test "should not withdraw money with different currency from the account",%{
+  test "should not withdraw money with different currency from the account", %{
     system: system,
     no_limit_account: no_limit_account,
     one_usd: one_usd
@@ -104,7 +103,11 @@ defmodule FinancialSystemWithdrawalTest do
     assert {:error, "Not registered account"} = FinancialSystem.withdraw(system, unregistered_account, zero_brl)
   end
 
-  test "should not withdraw zero money", %{system: system, one_brl_limit_account: one_brl_limit_account, zero_brl: zero_brl} do
+  test "should not withdraw zero money", %{
+    system: system,
+    one_brl_limit_account: one_brl_limit_account,
+    zero_brl: zero_brl
+  } do
     assert {:error, "Debit in a transaction should be negative"} = FinancialSystem.withdraw(system, one_brl_limit_account, zero_brl)
   end
 

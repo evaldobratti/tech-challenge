@@ -100,7 +100,7 @@ defmodule FinancialSystemDepositTest do
     assert one_half_brl == FinancialSystem.balance(system, brl_account2)
   end
 
-  test "should not deposit money with different currency from the account",%{
+  test "should not deposit money with different currency from the account", %{
     system: system,
     brl_account1: brl_account1,
     one_half_usd: one_half_usd
@@ -127,7 +127,7 @@ defmodule FinancialSystemDepositTest do
     {:ok, system, transaction} = FinancialSystem.deposit_exchange(system, brl_account1, one_half_usd, 3.2222)
 
     {:ok, exchanged} = Money.create(4.83, brl)
-    
+
     from_debit = Money.negative(one_half_usd)
 
     assert {1, {{7, "deposit USD", _, _}, ^from_debit}, {^brl_account1, ^exchanged}} = transaction

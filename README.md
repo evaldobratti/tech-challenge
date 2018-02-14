@@ -7,18 +7,21 @@ Para isso, o sistema financeiro conta algumas contas "privadas", que são, uma c
 Por exemplo:
 
 Depósito de R$ 1,00 na conta X
-
-(R$ -1,00 | conta depósito)(R$ 1 | conta X}
+```
+(R$ -1,00 | conta depósito)(R$ 1,00 | conta X)
+```
 
 Saque de R$ 1,00 na conta X
-
-(R$ -1,00 | conta X)(R$ 1 | conta saque}
+```
+(R$ -1,00 | conta X)(R$ 1,00 | conta saque)
+```
 
 Transferencia de R$ 1,00 da conta X para conta Y
+```
+(R$ -1,00 | conta X)(R$ 1,00 | conta Y)
+```
 
-(R$ -1,00 | conta X)(R$ 1 | conta Y}
-
-Dado que qualquer operação feita no sistema respeita essa estrutura, é possível determinar qual o saldo de cada conta, quanto de dinheiro entrou no sistema através de depósitos, quanto saiu através de saques, calcula um extrato da conta etc.
+Dado que qualquer operação feita no sistema respeita essa estrutura, é possível determinar qual o saldo de cada conta, quanto de dinheiro entrou no sistema através de depósitos, quanto saiu através de saques, calcular o extrato de uma conta etc.
 
 
 # Criando moeda
@@ -41,7 +44,7 @@ system = FinancialSystem.create("system")
 ```
 # Criando uma conta no sistema financeiro
 As contas podem ter um limite para ficarem negativas, que é determina pelo terceiro parametro.
-Quanto este limite é zero, a conta não pode ficar negativa.
+Quando este limite é zero, a conta não pode ficar negativa.
 ```
 {:ok, system, acc_bruce} = FinancialSystem.add_account(system, "Bruce Wayne", ten_usd)
 {:ok, system, acc_clark} = FinancialSystem.add_account(system, "Clark Kent", zero_usd)

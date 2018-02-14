@@ -18,11 +18,11 @@ defmodule Currency do
     cond do
       not is_binary(code_alpha) -> {:error, "Alphabetic code should be a string"}
       String.length(code_alpha) != 3 -> {:error, "Alphabetic code should have 3 letters"}
-      
+
       not is_binary(code_number) -> {:error, "Numeric code should be a string"}
       Integer.parse(code_number) == :error -> {:error, "Numeric code should have only numbers"}
       String.length(code_number) != 3 -> {:error, "Numeric code should have 3 digits"}
-      
+
       not is_integer(exponent) -> {:error, "Exponent should be an integer"}
       exponent < 0 -> {:error, "Exponent should be positive"}
 

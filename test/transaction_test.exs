@@ -61,7 +61,8 @@ defmodule TransactionTest do
     {:ok, one_usd} = Money.create(1, usd)
     {:ok, minus_one_brl} = Money.create(-1, brl)
 
-    assert {:ok, {1, {^acc1, ^minus_one_brl}, {^acc3, ^one_usd}}} = Transaction.create(1, acc1, minus_one_brl, acc3, one_usd)
+    {:ok, transaction} = Transaction.create(1, acc1, minus_one_brl, acc3, one_usd)
+    assert {1, {^acc1, ^minus_one_brl}, {^acc3, ^one_usd}} = transaction
   end
 
   test "should not create a transaction if money from account has not same currency as the account", %{

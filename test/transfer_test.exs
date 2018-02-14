@@ -103,7 +103,7 @@ defmodule FinancialSystemTransferTest do
     one_brl: one_brl
   } do
     {:ok, system, to} = FinancialSystem.add_account(system, "Bruce Wayne", one_brl)
-    
+
     deposit_hacking = Enum.at(system.accounts, 1)
 
     assert elem(deposit_hacking, 1) == "deposit BRL"
@@ -116,7 +116,7 @@ defmodule FinancialSystemTransferTest do
     one_brl: one_brl
   } do
     {:ok, system, from} = FinancialSystem.add_account(system, "Bruce Wayne", one_brl)
-    
+
     withdraw_hacking = Enum.at(system.accounts, 2)
 
     assert elem(withdraw_hacking, 1) == "withdrawal BRL"

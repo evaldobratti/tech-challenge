@@ -4,7 +4,7 @@ defmodule CurrencyTest do
 
   test "should create a valid Currency" do
     {:ok, currency } = Currency.create("BRL", "986", 2)
-    
+
     assert currency.code_number == "986"
     assert currency.code_alpha == "BRL"
     assert currency.exponent == 2
