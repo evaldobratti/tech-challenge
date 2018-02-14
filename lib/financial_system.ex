@@ -42,8 +42,6 @@ defmodule FinancialSystem do
           :accounts => accounts,
           :private_accounts => private_accounts}
         |> Map.put(currency, List.to_tuple(currency_accounts))
-      else
-        {:error, "Already registered account"} -> system
       end
     else
       system

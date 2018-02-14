@@ -280,9 +280,13 @@ defmodule MoneyTest do
     assert usd == Money.get_currency(zero)
   end
 
-  test "can recover a unit of a currency from various exchanges", %{usd: usd} do
+  test "should recover a unit of a currency from various exchanges", %{usd: usd} do
     {:ok, cent} = Money.create(0.01, usd)
     assert {:ok, ^cent, 0} = Money.can_recover(100_000, usd)
+  end
+
+  test "should not recover a unit of a currency if there are no amount to it", %{usd: usd} do
+    assert {:no} = Money.can_recover(99_999, usd)
   end
 
   test "should format yen" do
